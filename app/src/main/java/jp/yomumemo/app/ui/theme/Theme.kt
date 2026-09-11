@@ -34,6 +34,15 @@ private val LightColors = lightColorScheme(
     surfaceVariant = Color(0xFFEDE3D6),
     onSurfaceVariant = Color(0xFF5A5047),
     outline = Color(0xFF8C8177),
+    // Card などが使う階層色。既定のままだと紫がかった灰色になり、
+    // 紙を思わせる暖色の配色から浮いてしまうので明示的に与える。
+    surfaceBright = Color(0xFFFFFBF4),
+    surfaceDim = Color(0xFFE6DFD3),
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFFBF6EC),
+    surfaceContainer = Color(0xFFF6F0E4),
+    surfaceContainerHigh = Color(0xFFF0EADC),
+    surfaceContainerHighest = Color(0xFFEAE3D4),
 )
 
 private val DarkColors = darkColorScheme(
@@ -52,6 +61,13 @@ private val DarkColors = darkColorScheme(
     surfaceVariant = Color(0xFF4C443B),
     onSurfaceVariant = Color(0xFFCFC4B8),
     outline = Color(0xFF988D82),
+    surfaceBright = Color(0xFF3B352F),
+    surfaceDim = Color(0xFF16130F),
+    surfaceContainerLowest = Color(0xFF110E0B),
+    surfaceContainerLow = Color(0xFF1E1A16),
+    surfaceContainer = Color(0xFF221E19),
+    surfaceContainerHigh = Color(0xFF2D2823),
+    surfaceContainerHighest = Color(0xFF38322C),
 )
 
 @Composable
