@@ -7,6 +7,15 @@
 アプリは完成しており、署名済みの AAB を生成できる。Play Console での公開作業が残っている。
 手順は [docs/play-console-checklist.md](docs/play-console-checklist.md) を参照。
 
+公開は **組織（Organization）アカウント**で行う。個人アカウントだと製品版公開前に
+「12人のテスター × 連続14日間」のクローズドテストが必要になるが、組織アカウントは対象外。
+個人事業主でも D-U-N-S 番号（無料）で取得できる。
+手順は [docs/duns-and-organization-account.md](docs/duns-and-organization-account.md)。
+
+決済は Google Play Billing を使う。代替課金（Stripe 等）は日本でも解禁されたが、
+サービス手数料 10% は決済手段を問わず発生し、浮くのは決済手数料だけ。
+そこに Stripe の 3.6% が乗るため実質差は 1.4% 程度で、実装と運用の負担に見合わない。
+
 ```
 単体テスト  128 件
 計装テスト   24 件（実機/エミュレータ上）
