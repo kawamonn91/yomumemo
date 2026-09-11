@@ -107,6 +107,9 @@ dependencies {
     // バーコード読み取り: カメラ権限不要の Google code scanner
     implementation(libs.play.services.code.scanner)
 
+    // 課金 (買い切りのプレミアム解除)
+    implementation(libs.billing.ktx)
+
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.androidx.room.testing)

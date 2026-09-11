@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -14,12 +13,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import jp.yomumemo.app.data.repo.BookRepository
 import jp.yomumemo.app.data.repo.NoteRepository
 import jp.yomumemo.app.ui.book.BookDetailScreen
 import jp.yomumemo.app.ui.book.BookDetailViewModel
 import jp.yomumemo.app.ui.note.NoteEditorScreen
 import jp.yomumemo.app.ui.note.NoteEditorViewModel
+import jp.yomumemo.app.ui.paywall.PaywallScreen
+import jp.yomumemo.app.ui.paywall.PaywallViewModel
 import jp.yomumemo.app.ui.rememberAppContainer
 import jp.yomumemo.app.ui.scan.ScanScreen
 import jp.yomumemo.app.ui.scan.ScanViewModel
@@ -45,6 +45,7 @@ private object Routes {
     const val SHELF = "shelf"
     const val SCAN = "scan"
     const val SEARCH = "search"
+    const val PAYWALL = "paywall"
     const val BOOK = "book/{bookId}"
     const val NOTE_NEW = "note/{bookId}"
     const val NOTE_EDIT = "note/{bookId}/{noteId}"
@@ -59,9 +60,9 @@ private fun YomuMemoNavHost() {
     val navController = rememberNavController()
     val container = rememberAppContainer()
 
-    // リポジトリは画面をまたいで同じ実体を使う
-    val bookRepository = remember(container) { BookRepository(container.database.bookDao()) }
-    val noteRepository = remember(container) { NoteRepository(container.database.noteDao()) }
+    // リポジトリはコンテナが保持する同じ実体を画面間で共有する
+    val bookRepository = container.bookRepository
+    val noteRepository = container.noteRepository
 
     NavHost(navController = navController, startDestination = Routes.SHELF) {
 
@@ -76,13 +77,16 @@ private fun YomuMemoNavHost() {
                 onOpenBook = { navController.navigate(Routes.book(it)) },
                 onScan = { navController.navigate(Routes.SCAN) },
                 onSearch = { navController.navigate(Routes.SEARCH) },
+                onOpenPaywall = { navController.navigate(Routes.PAYWALL) },
             )
         }
 
         composable(Routes.SCAN) {
             val vm: ScanViewModel = viewModel(
                 factory = viewModelFactory {
-                    initializer { ScanViewModel(container.bookLookup, bookRepository) }
+                    initializer {
+                        ScanViewModel(container.bookLookup, bookRepository, container.entitlements)
+                    }
                 },
             )
             ScanScreen(
@@ -92,8 +96,18 @@ private fun YomuMemoNavHost() {
                         popUpTo(Routes.SHELF)
                     }
                 },
+                onOpenPaywall = { navController.navigate(Routes.PAYWALL) },
                 onBack = { navController.popBackStack() },
             )
+        }
+
+        composable(Routes.PAYWALL) {
+            val vm: PaywallViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer { PaywallViewModel(container.billing, container.entitlements) }
+                },
+            )
+            PaywallScreen(viewModel = vm, onBack = { navController.popBackStack() })
         }
 
         composable(Routes.SEARCH) {

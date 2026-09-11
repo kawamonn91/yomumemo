@@ -52,6 +52,7 @@ import jp.yomumemo.app.ui.common.BookCover
 fun ScanScreen(
     viewModel: ScanViewModel,
     onSaved: (String) -> Unit,
+    onOpenPaywall: () -> Unit,
     onBack: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -156,6 +157,12 @@ fun ScanScreen(
                     body = s.message,
                     onRetry = viewModel::showScanner,
                     onTypeIsbn = viewModel::showIsbnInput,
+                )
+
+                is ScanUiState.LimitReached -> LimitReached(
+                    limit = s.limit,
+                    onOpenPaywall = onOpenPaywall,
+                    onBack = onBack,
                 )
 
                 is ScanUiState.Saved -> Centered { CircularProgressIndicator() }
@@ -468,6 +475,35 @@ private fun IsbnInput(onSubmit: (String) -> Unit, onCancel: () -> Unit) {
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
             Text("戻る")
+        }
+    }
+}
+
+/** 無料版の登録上限。責めずに、選択肢を示す。 */
+@Composable
+private fun LimitReached(limit: Int, onOpenPaywall: () -> Unit, onBack: () -> Unit) {
+    Column {
+        Text("無料版の上限に達しました", style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.height(12.dp))
+        Text(
+            "無料版で登録できるのは " + limit + " 冊までです。" +
+                "プレミアム(買い切り)にすると冊数の制限がなくなります。",
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            "すでに登録した本のメモは、これまでどおり自由に追加・編集できます。",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        Spacer(Modifier.height(24.dp))
+        Button(onClick = onOpenPaywall, modifier = Modifier.fillMaxWidth()) {
+            Text("プレミアムを見る")
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+            Text("本棚に戻る")
         }
     }
 }

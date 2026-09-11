@@ -2,6 +2,7 @@ package jp.yomumemo.app.ui.scan
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import jp.yomumemo.app.billing.EntitlementRepository
 import jp.yomumemo.app.data.db.entity.BookEntity
 import jp.yomumemo.app.data.db.entity.ReadingStatus
 import jp.yomumemo.app.data.remote.BookLookupRepository
@@ -14,6 +15,7 @@ import jp.yomumemo.app.util.interpretScannedCode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 sealed interface ScanUiState {
@@ -47,6 +49,9 @@ sealed interface ScanUiState {
         val existing: BookEntity? = null,
     ) : ScanUiState
 
+    /** 無料版の登録上限に達した。 */
+    data class LimitReached(val limit: Int) : ScanUiState
+
     /**
      * 日本の書籍バーコードの下段(価格コード)を読んだ。
      * 誤操作として最も多いので、専用の案内を出す。
@@ -67,6 +72,7 @@ sealed interface ScanUiState {
 class ScanViewModel(
     private val lookup: BookLookupRepository,
     private val books: BookRepository,
+    private val entitlements: EntitlementRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<ScanUiState>(ScanUiState.Idle)
@@ -143,8 +149,22 @@ class ScanViewModel(
         }
     }
 
+    /**
+     * 無料版の上限に達していないか。
+     * 上限の決め方は EntitlementRepository に閉じてあるので、ここは問い合わせるだけ。
+     */
+    private suspend fun withinBookLimit(): Boolean {
+        val premium = entitlements.isPremium.first()
+        val limit = entitlements.bookLimit(premium) ?: return true
+        return books.countActive() < limit
+    }
+
     fun save(metadata: BookMetadata, status: ReadingStatus) {
         viewModelScope.launch {
+            if (!withinBookLimit()) {
+                _state.value = ScanUiState.LimitReached(EntitlementRepository.FREE_BOOK_LIMIT)
+                return@launch
+            }
             val id = books.addFromMetadata(metadata, status)
             _state.value = ScanUiState.Saved(id)
         }
@@ -162,6 +182,10 @@ class ScanViewModel(
             return
         }
         viewModelScope.launch {
+            if (!withinBookLimit()) {
+                _state.value = ScanUiState.LimitReached(EntitlementRepository.FREE_BOOK_LIMIT)
+                return@launch
+            }
             val id = books.addManual(
                 title = title,
                 authors = authors.split("、", ",").map(String::trim).filter(String::isNotEmpty),

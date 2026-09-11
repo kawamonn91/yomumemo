@@ -19,6 +19,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -48,6 +49,7 @@ fun ShelfScreen(
     onOpenBook: (String) -> Unit,
     onScan: () -> Unit,
     onSearch: () -> Unit,
+    onOpenPaywall: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -58,6 +60,9 @@ fun ShelfScreen(
                 actions = {
                     IconButton(onClick = onSearch) {
                         Icon(Icons.Default.Search, contentDescription = "メモを検索")
+                    }
+                    IconButton(onClick = onOpenPaywall) {
+                        Icon(Icons.Default.WorkspacePremium, contentDescription = "プレミアム")
                     }
                 },
             )
