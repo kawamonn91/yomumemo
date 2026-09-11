@@ -3,6 +3,14 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!--
+      引用のカメラ取り込み(OCR)でのみ使う。バーコード読み取りは
+      Google code scanner が担うため権限を必要としない。
+      カメラの無い端末でも他の機能は使えるので必須にはしない。
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+
     <application
         android:name=".YomuMemoApp"
         android:allowBackup="true"

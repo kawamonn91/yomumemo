@@ -16,12 +16,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -41,6 +43,8 @@ import jp.yomumemo.app.ui.common.label
 fun NoteEditorScreen(
     viewModel: NoteEditorViewModel,
     onDone: () -> Unit,
+    onOpenOcr: () -> Unit,
+    onOpenPaywall: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -97,6 +101,16 @@ fun NoteEditorScreen(
             )
 
             Spacer(Modifier.height(20.dp))
+            OutlinedButton(
+                onClick = { if (state.isPremium) onOpenOcr() else onOpenPaywall() },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(Icons.Default.PhotoCamera, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(if (state.isPremium) "本のページを撮って引用を取り込む" else "引用のカメラ取り込み (プレミアム)")
+            }
+
+            Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = state.quote,
                 onValueChange = viewModel::setQuote,

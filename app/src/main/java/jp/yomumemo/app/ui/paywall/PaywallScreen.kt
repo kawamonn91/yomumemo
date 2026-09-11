@@ -87,7 +87,7 @@ fun PaywallScreen(
                     FeatureRow("引用をカメラで取り込む", "本のページを撮ると文字を読み取ります")
                     FeatureRow("メモの書き出し", "Markdown / CSV / Obsidian 形式")
                     FeatureRow("読書の統計", "冊数・ページ数・続いている日数")
-                    FeatureRow("Google ドライブ同期", "機種変更しても引き継げます")
+                    FeatureRow("バックアップと復元", "機種変更のとき、メモごと引き継げます")
                 }
             }
 

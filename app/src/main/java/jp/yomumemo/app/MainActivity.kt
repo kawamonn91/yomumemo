@@ -5,18 +5,22 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import jp.yomumemo.app.data.repo.NoteRepository
 import jp.yomumemo.app.ui.book.BookDetailScreen
 import jp.yomumemo.app.ui.book.BookDetailViewModel
 import jp.yomumemo.app.ui.note.NoteEditorScreen
+import jp.yomumemo.app.ocr.QuoteOcrScreen
 import jp.yomumemo.app.ui.note.NoteEditorViewModel
 import jp.yomumemo.app.ui.paywall.PaywallScreen
 import jp.yomumemo.app.ui.paywall.PaywallViewModel
@@ -52,6 +56,10 @@ private object Routes {
     const val PAYWALL = "paywall"
     const val SETTINGS = "settings"
     const val STATS = "stats"
+    const val OCR = "ocr"
+
+    /** OCR の結果を呼び出し元へ渡すときの鍵。 */
+    const val OCR_RESULT = "ocr_result"
     const val BOOK = "book/{bookId}"
     const val NOTE_NEW = "note/{bookId}"
     const val NOTE_EDIT = "note/{bookId}/{noteId}"
@@ -143,6 +151,19 @@ private fun YomuMemoNavHost() {
             )
         }
 
+        composable(Routes.OCR) {
+            QuoteOcrScreen(
+                onTextRecognized = { text ->
+                    // 呼び出し元(メモ編集)へ結果を渡してから戻る
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(Routes.OCR_RESULT, text)
+                    navController.popBackStack()
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
         composable(Routes.PAYWALL) {
             val vm: PaywallViewModel = viewModel(
                 factory = viewModelFactory {
@@ -189,10 +210,11 @@ private fun YomuMemoNavHost() {
             arguments = listOf(navArgument("bookId") { type = NavType.StringType }),
         ) { entry ->
             NoteEditorRoute(
+                entry = entry,
+                navController = navController,
+                container = container,
                 bookId = entry.arguments?.getString("bookId").orEmpty(),
                 noteId = null,
-                notes = noteRepository,
-                onDone = { navController.popBackStack() },
             )
         }
 
@@ -204,10 +226,11 @@ private fun YomuMemoNavHost() {
             ),
         ) { entry ->
             NoteEditorRoute(
+                entry = entry,
+                navController = navController,
+                container = container,
                 bookId = entry.arguments?.getString("bookId").orEmpty(),
                 noteId = entry.arguments?.getString("noteId"),
-                notes = noteRepository,
-                onDone = { navController.popBackStack() },
             )
         }
     }
@@ -215,16 +238,37 @@ private fun YomuMemoNavHost() {
 
 @Composable
 private fun NoteEditorRoute(
+    entry: NavBackStackEntry,
+    navController: androidx.navigation.NavHostController,
+    container: AppContainer,
     bookId: String,
     noteId: String?,
-    notes: NoteRepository,
-    onDone: () -> Unit,
 ) {
     val vm: NoteEditorViewModel = viewModel(
         key = "note-$bookId-$noteId",
         factory = viewModelFactory {
-            initializer { NoteEditorViewModel(bookId, noteId, notes) }
+            initializer {
+                NoteEditorViewModel(bookId, noteId, container.noteRepository, container.entitlements)
+            }
         },
     )
-    NoteEditorScreen(viewModel = vm, onDone = onDone)
+
+    // OCR 画面から戻ってきたら、読み取った文を引用欄へ足す。
+    // 一度取り込んだら鍵を消す。画面を作り直すたびに同じ文が増えるのを防ぐため。
+    val handle = entry.savedStateHandle
+    val recognized = handle.getStateFlow<String?>(Routes.OCR_RESULT, null)
+        .collectAsStateWithLifecycle()
+    LaunchedEffect(recognized.value) {
+        recognized.value?.let { text ->
+            vm.appendRecognizedQuote(text)
+            handle[Routes.OCR_RESULT] = null
+        }
+    }
+
+    NoteEditorScreen(
+        viewModel = vm,
+        onDone = { navController.popBackStack() },
+        onOpenOcr = { navController.navigate(Routes.OCR) },
+        onOpenPaywall = { navController.navigate(Routes.PAYWALL) },
+    )
 }
