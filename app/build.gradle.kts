@@ -10,6 +10,16 @@ val googleBooksApiKey: String = Properties().apply {
     if (file.exists()) file.inputStream().use(::load)
 }.getProperty("googleBooksApiKey").orEmpty()
 
+/**
+ * リリース署名の情報。keystore.properties は .gitignore 済みで、
+ * 鍵そのものもリポジトリには入らない。
+ * ファイルが無い環境ではデバッグ署名のままビルドが通るようにしてある
+ * (CI や他の開発者が鍵なしでもビルドを確認できるようにするため)。
+ */
+val releaseSigning: Properties? = rootProject.file("keystore.properties")
+    .takeIf { it.exists() }
+    ?.let { file -> Properties().apply { file.inputStream().use(::load) } }
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -33,12 +43,24 @@ android {
         buildConfigField("String", "GOOGLE_BOOKS_API_KEY", "\"" + googleBooksApiKey + "\"")
     }
 
+    signingConfigs {
+        if (releaseSigning != null) {
+            create("release") {
+                storeFile = rootProject.file(releaseSigning.getProperty("storeFile"))
+                storePassword = releaseSigning.getProperty("storePassword")
+                keyAlias = releaseSigning.getProperty("keyAlias")
+                keyPassword = releaseSigning.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
         }
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

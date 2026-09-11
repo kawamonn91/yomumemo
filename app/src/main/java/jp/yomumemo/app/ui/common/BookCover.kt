@@ -73,18 +73,23 @@ private fun PlaceholderCover(title: String) {
     }
 }
 
+private val PLACEHOLDER_PALETTE = listOf(
+    Color(0xFF7C5E48) to Color(0xFF5D4636),
+    Color(0xFF5F7355) to Color(0xFF45543E),
+    Color(0xFF4E6272) to Color(0xFF3A4955),
+    Color(0xFF7A5A6E) to Color(0xFF5B4353),
+    Color(0xFF6B6650) to Color(0xFF4F4B3B),
+    Color(0xFF8B5E3C) to Color(0xFF69472D),
+)
+
 /**
  * タイトルから色を決める。落ち着いた色相のみを使い、本棚が騒がしくならないようにする。
+ *
+ * hashCode は負になりうる。Kotlin の % は被除数の符号を引き継ぐため、
+ * 素直に剰余を取ると負の添字になって落ちる。floorMod で必ず 0 以上にする。
  */
-private fun placeholderColors(title: String): Pair<Color, Color> {
-    val palette = listOf(
-        Color(0xFF7C5E48) to Color(0xFF5D4636),
-        Color(0xFF5F7355) to Color(0xFF45543E),
-        Color(0xFF4E6272) to Color(0xFF3A4955),
-        Color(0xFF7A5A6E) to Color(0xFF5B4353),
-        Color(0xFF6B6650) to Color(0xFF4F4B3B),
-        Color(0xFF8B5E3C) to Color(0xFF69472D),
-    )
-    val index = (title.hashCode().toLong() and 0xFFFFFFFFL).toInt() % palette.size
-    return palette[index]
-}
+internal fun placeholderColorIndex(title: String, paletteSize: Int): Int =
+    Math.floorMod(title.hashCode(), paletteSize)
+
+private fun placeholderColors(title: String): Pair<Color, Color> =
+    PLACEHOLDER_PALETTE[placeholderColorIndex(title, PLACEHOLDER_PALETTE.size)]
