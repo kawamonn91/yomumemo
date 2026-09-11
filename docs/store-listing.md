@@ -169,9 +169,9 @@ Bibliographic data comes from openBD (openbd.jp), which is accurate for Japanese
 | 無料または有料 | 無料（アプリ内購入あり） |
 | カテゴリ | 書籍&文献（Books & Reference） |
 | タグ | 読書, 読書記録, メモ, 書評, バーコード |
-| プライバシーポリシー URL | GitHub Pages で公開した `privacy-policy.html` の URL |
-| 連絡先メール | ご自身のアドレス |
-| 連絡先ウェブサイト | GitHub Pages のトップ（任意） |
+| プライバシーポリシー URL | `https://kawamonn91.github.io/yomumemo/privacy-policy.html` ✅公開済み |
+| 連絡先メール | kawamonn91@gmail.com |
+| 連絡先ウェブサイト | `https://kawamonn91.github.io/yomumemo/` ✅公開済み |
 
 ## アプリ内商品
 

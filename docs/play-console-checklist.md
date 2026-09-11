@@ -42,17 +42,27 @@ Stripe など代替課金に切り替えても、サービス手数料10%は決�
 
 ---
 
-## 1. プライバシーポリシーを公開する
+## 1. プライバシーポリシーを公開する ✅ 完了
 
-Play はプライバシーポリシーの **公開URL** を要求する。GitHub Pages なら無料。
+**公開済み。** Play Console にはこの URL を入力する。
 
-1. GitHub でリポジトリを作る（無料枠では public が確実）
-2. `docs/privacy-policy.html` を含めて push
-3. リポジトリの **Settings → Pages** で Source を `main` ブランチの `/docs` に設定
-4. 数分後に `https://<ユーザー名>.github.io/<リポジトリ名>/privacy-policy.html` で開けることを確認
+| 用途 | URL |
+|---|---|
+| プライバシーポリシー | `https://kawamonn91.github.io/yomumemo/privacy-policy.html` |
+| ホームページ（連絡先ウェブサイト欄） | `https://kawamonn91.github.io/yomumemo/` |
 
-> Google Books API キーの OAuth ブランド確認でも「自分が所有するドメイン上の
-> ホームページとプライバシーポリシー」が要る。同じ GitHub Pages で両方を賄える。
+公開リポジトリ: <https://github.com/kawamonn91/yomumemo>
+
+**アプリのソースはこのリポジトリに含めていない。** 無料の GitHub Pages は
+公開リポジトリでしか使えないため、公開してよいもの（ホームページと
+プライバシーポリシー）だけを分けてある。
+
+内容を直したい場合は、そのリポジトリの `privacy-policy.html` を編集して push すれば
+数分で反映される。**アプリの挙動を変えたときは、ここの記述も合わせて見直すこと。**
+
+> このサイトは Google Books API キーの OAuth ブランド確認でも使える。
+> 「自分が所有するドメイン上のホームページとプライバシーポリシー」という
+> 要件を、この1サイトで満たせる。
 
 ---
 
