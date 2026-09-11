@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/kawam/.gradle/**)",
+      "Read(//c/Users/kawam/.gradle/wrapper/dists/**)",
+      "Read(//c/Program Files/Android/Android Studio/plugins/android-gradle-dsl/**)",
+      "Read(//c/Program Files/Android/Android Studio/jbr/bin/**)",
+      "Bash(curl -s \"https://services.gradle.org/versions/current\")"
+    ]
+  }
+}

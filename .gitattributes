@@ -1,0 +1,13 @@
+# 改行コードはリポジトリ上は LF に統一する。
+# Windows と CI で gradlew の改行が食い違うと実行できなくなるため。
+* text=auto eol=lf
+
+*.bat text eol=crlf
+gradlew text eol=lf
+
+*.jar binary
+*.keystore binary
+*.jks binary
+*.png binary
+*.jpg binary
+*.webp binary
