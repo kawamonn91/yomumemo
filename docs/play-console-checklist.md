@@ -122,6 +122,10 @@ keytool -list -v -keystore keystore/yomumemo-upload.jks -alias yomumemo-upload
 
 **開発者名は屋号で表示される。** 掲載文の中に本名が混ざっていないか確認すること。
 
+> **住所は組織アカウントでも公開される。** 隠せるのは名前だけ。
+> 自宅を事業所にしている場合は、D-U-N-S 登録前にバーチャルオフィスへ
+> 切り替えるか判断すること（詳細は duns-and-organization-account.md）。
+
 ---
 
 ## 5. 質問票に答える
