@@ -85,12 +85,51 @@ def draw_book(draw, cx, cy, width, height):
 
 
 def make_icon(path, size=512):
-    img = Image.new("RGB", (size, size), CLAY)
+    # Play の要件は「32ビットPNG（アルファ付き）」。RGB で保存すると弾かれるので
+    # 中身が不透明でもアルファチャンネルを持たせる。
+    img = Image.new("RGBA", (size, size), CLAY + (255,))
     draw = ImageDraw.Draw(img)
     # アイコンは円形などにマスクされるため、図形を中央 66% の安全領域に収める
     draw_book(draw, size / 2, size / 2, size * 0.42, size * 0.52)
     img.save(path, "PNG")
     return path
+
+
+def prepare_screenshots(src_dir, out_dir, max_ratio=2.0, pad_color=SAND):
+    """スクリーンショットを Play の要件に合わせる。
+
+    要件は2つあり、素のスクリーンショットはどちらも満たさない。
+
+    1. 「JPEG または 24ビットPNG（アルファなし）」
+       端末から取得した PNG は RGBA なので RGB に落とす。
+    2. 「最大値が最小値の2倍以上にならないこと」
+       近年の端末は 20:9 などが普通で、1080x2400 は 2.22 倍になり違反する。
+       内容を削らずに済むよう、**横に余白を足して** 2:1 に収める。
+       切り抜くと画面の上下が欠けるため、余白を足す方を選んでいる。
+    """
+    os.makedirs(out_dir, exist_ok=True)
+    results = []
+    for name in sorted(os.listdir(src_dir)):
+        if not name.lower().endswith(".png"):
+            continue
+        with Image.open(os.path.join(src_dir, name)) as im:
+            im = im.convert("RGB")
+            w, h = im.size
+            long_side, short_side = max(w, h), min(w, h)
+            if long_side / short_side > max_ratio:
+                if h > w:
+                    new_w = int(round(h / max_ratio))
+                    canvas = Image.new("RGB", (new_w, h), pad_color)
+                    canvas.paste(im, ((new_w - w) // 2, 0))
+                else:
+                    new_h = int(round(w / max_ratio))
+                    canvas = Image.new("RGB", (w, new_h), pad_color)
+                    canvas.paste(im, (0, (new_h - h) // 2))
+                im = canvas
+            out = os.path.join(out_dir, name)
+            im.save(out, "PNG")
+            results.append(out)
+    return results
 
 
 def make_feature_graphic(path, width=1024, height=500):
@@ -119,11 +158,21 @@ def make_feature_graphic(path, width=1024, height=500):
 def main():
     out_dir = sys.argv[1] if len(sys.argv) > 1 else "store-assets"
     os.makedirs(out_dir, exist_ok=True)
+
     icon = make_icon(os.path.join(out_dir, "store-icon-512.png"))
     feature = make_feature_graphic(os.path.join(out_dir, "feature-graphic-1024.png"))
-    for p in (icon, feature):
+
+    # 端末から取得した生のスクリーンショットを、Play の要件に合わせて変換する
+    raw = os.path.join(out_dir, "screenshots-raw")
+    shots = []
+    if os.path.isdir(raw):
+        shots = prepare_screenshots(raw, os.path.join(out_dir, "screenshots"))
+
+    for p in [icon, feature] + shots:
         with Image.open(p) as im:
-            print("{}  {}x{}".format(p, im.width, im.height))
+            ratio = max(im.size) / min(im.size)
+            print("{:52} {:>5}x{:<5} {:5} 比率 {:.2f}".format(
+                os.path.basename(p), im.width, im.height, im.mode, ratio))
 
 
 if __name__ == "__main__":
