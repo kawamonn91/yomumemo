@@ -25,6 +25,10 @@ import jp.yomumemo.app.ui.scan.ScanScreen
 import jp.yomumemo.app.ui.scan.ScanViewModel
 import jp.yomumemo.app.ui.search.SearchScreen
 import jp.yomumemo.app.ui.search.SearchViewModel
+import jp.yomumemo.app.ui.settings.SettingsScreen
+import jp.yomumemo.app.ui.settings.SettingsViewModel
+import jp.yomumemo.app.ui.stats.StatsScreen
+import jp.yomumemo.app.ui.stats.StatsViewModel
 import jp.yomumemo.app.ui.shelf.ShelfScreen
 import jp.yomumemo.app.ui.shelf.ShelfViewModel
 import jp.yomumemo.app.ui.theme.YomuMemoTheme
@@ -46,6 +50,8 @@ private object Routes {
     const val SCAN = "scan"
     const val SEARCH = "search"
     const val PAYWALL = "paywall"
+    const val SETTINGS = "settings"
+    const val STATS = "stats"
     const val BOOK = "book/{bookId}"
     const val NOTE_NEW = "note/{bookId}"
     const val NOTE_EDIT = "note/{bookId}/{noteId}"
@@ -77,6 +83,37 @@ private fun YomuMemoNavHost() {
                 onOpenBook = { navController.navigate(Routes.book(it)) },
                 onScan = { navController.navigate(Routes.SCAN) },
                 onSearch = { navController.navigate(Routes.SEARCH) },
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+            )
+        }
+
+        composable(Routes.SETTINGS) {
+            val vm: SettingsViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer {
+                        SettingsViewModel(bookRepository, noteRepository, container.entitlements)
+                    }
+                },
+            )
+            SettingsScreen(
+                viewModel = vm,
+                onBack = { navController.popBackStack() },
+                onOpenPaywall = { navController.navigate(Routes.PAYWALL) },
+                onOpenStats = { navController.navigate(Routes.STATS) },
+            )
+        }
+
+        composable(Routes.STATS) {
+            val vm: StatsViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer {
+                        StatsViewModel(bookRepository, noteRepository, container.entitlements)
+                    }
+                },
+            )
+            StatsScreen(
+                viewModel = vm,
+                onBack = { navController.popBackStack() },
                 onOpenPaywall = { navController.navigate(Routes.PAYWALL) },
             )
         }
