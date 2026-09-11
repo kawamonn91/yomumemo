@@ -9,7 +9,7 @@
 
 公開は **組織（Organization）アカウント**で行う。個人アカウントだと製品版公開前に
 「12人のテスター × 連続14日間」のクローズドテストが必要になるが、組織アカウントは対象外。
-個人事業主でも D-U-N-S 番号（無料）で取得できる。
+個人事業主でも D-U-N-S 番号（無料・東京商工リサーチ経由で約1ヶ月半）で取得できる。
 手順は [docs/duns-and-organization-account.md](docs/duns-and-organization-account.md)。
 
 決済は Google Play Billing を使う。代替課金（Stripe 等）は日本でも解禁されたが、
