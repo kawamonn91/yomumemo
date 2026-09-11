@@ -7,9 +7,11 @@ class FakeHttpFetcher(
 ) : HttpFetcher {
 
     val requestedUrls = mutableListOf<String>()
+    val requestedHeaders = mutableListOf<Map<String, String>>()
 
-    override suspend fun getString(url: String): String? {
+    override suspend fun getString(url: String, headers: Map<String, String>): String? {
         requestedUrls += url
+        requestedHeaders += headers
         val match = responses.entries.firstOrNull { url.contains(it.key) }
         return if (match != null) match.value else default
     }

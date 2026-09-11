@@ -1,3 +1,15 @@
+import java.util.Properties
+
+/**
+ * Google Books API キーは local.properties から読む。
+ * local.properties は .gitignore 済みなので、キーがリポジトリに入らない。
+ * 未設定でもビルドは通り、その場合アプリは openBD のみで動作する(表紙はプレースホルダ)。
+ */
+val googleBooksApiKey: String = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use(::load)
+}.getProperty("googleBooksApiKey").orEmpty()
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -17,6 +29,8 @@ android {
         versionCode = 1
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "GOOGLE_BOOKS_API_KEY", "\"" + googleBooksApiKey + "\"")
     }
 
     buildTypes {
@@ -45,6 +59,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {

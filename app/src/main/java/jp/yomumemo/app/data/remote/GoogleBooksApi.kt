@@ -27,6 +27,11 @@ interface MetadataEnrichmentSource {
 class GoogleBooksApi(
     private val http: HttpFetcher,
     private val apiKey: String? = null,
+    /**
+     * キーを「Android アプリ」で制限している場合に必要。
+     * null だとヘッダが付かないため、制限付きキーでは 403 になる。
+     */
+    private val appIdentity: AndroidAppIdentity? = null,
 ) : MetadataEnrichmentSource {
 
     override suspend fun lookup(isbn13: String): BookMetadata? {
@@ -36,7 +41,7 @@ class GoogleBooksApi(
             append("&country=JP")
             apiKey?.takeIf { it.isNotBlank() }?.let { append("&key=").append(it) }
         }
-        val body = http.getString(url) ?: return null
+        val body = http.getString(url, appIdentity?.asHeaders().orEmpty()) ?: return null
         val root = runCatching { json.parseToJsonElement(body) as? JsonObject }.getOrNull() ?: return null
         val volume = (root["items"] as? JsonArray)?.firstOrNull() as? JsonObject ?: return null
         val info = volume["volumeInfo"] as? JsonObject ?: return null

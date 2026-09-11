@@ -13,15 +13,16 @@ import java.util.concurrent.TimeUnit
  */
 interface HttpFetcher {
     /** 本文を返す。2xx 以外・通信失敗は null。 */
-    suspend fun getString(url: String): String?
+    suspend fun getString(url: String, headers: Map<String, String> = emptyMap()): String?
 }
 
 class OkHttpFetcher(private val callFactory: Call.Factory) : HttpFetcher {
 
-    override suspend fun getString(url: String): String? = withContext(Dispatchers.IO) {
+    override suspend fun getString(url: String, headers: Map<String, String>): String? = withContext(Dispatchers.IO) {
         val request = Request.Builder()
             .url(url)
             .header("User-Agent", USER_AGENT)
+            .apply { headers.forEach { (name, value) -> header(name, value) } }
             .build()
         runCatching {
             callFactory.newCall(request).execute().use { response ->
