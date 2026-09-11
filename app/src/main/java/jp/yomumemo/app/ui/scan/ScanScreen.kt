@@ -63,7 +63,7 @@ fun ScanScreen(
             BarcodeScannerLauncher.scan(
                 context = context,
                 onSuccess = viewModel::onScanned,
-                onCancelled = onBack,
+                onCancelled = viewModel::onScanCancelled,
                 onFailure = viewModel::onScanFailed,
             )
         }
@@ -95,6 +95,27 @@ fun ScanScreen(
             when (val s = state) {
                 ScanUiState.Idle -> Centered { Text("バーコードを読み取っています…") }
 
+                is ScanUiState.Choose -> ChooseMethod(
+                    hint = s.hint,
+                    onScan = viewModel::showScanner,
+                    onTypeIsbn = viewModel::showIsbnInput,
+                    onTypeBook = viewModel::showBookInput,
+                    onBack = onBack,
+                )
+
+                ScanUiState.TypingIsbn -> IsbnInput(
+                    onSubmit = viewModel::lookUpTyped,
+                    onCancel = viewModel::onScanCancelled,
+                )
+
+                ScanUiState.TypingBook -> ManualEntry(
+                    isbn13 = null,
+                    headline = "本の情報を入力",
+                    description = "ISBN が無い本や、書誌データに登録されていない本を手で登録します。",
+                    onSave = viewModel::saveManual,
+                    onRescan = viewModel::onScanCancelled,
+                )
+
                 is ScanUiState.LookingUp -> Centered {
                     CircularProgressIndicator()
                     Spacer(Modifier.height(16.dp))
@@ -109,13 +130,17 @@ fun ScanScreen(
                     onRescan = viewModel::reset,
                 )
 
-                ScanUiState.PriceCodeScanned -> PriceCodeGuidance(onRetry = viewModel::reset)
+                ScanUiState.PriceCodeScanned -> PriceCodeGuidance(
+                    onRetry = viewModel::showScanner,
+                    onTypeIsbn = viewModel::showIsbnInput,
+                )
 
                 ScanUiState.NotABook -> Message(
                     title = "書籍のバーコードではないようです",
                     body = "読み取れたのは書籍以外の商品コードでした。本の裏表紙にある " +
                         "978 から始まるバーコードを読み取ってください。",
-                    onRetry = viewModel::reset,
+                    onRetry = viewModel::showScanner,
+                    onTypeIsbn = viewModel::showIsbnInput,
                 )
 
                 is ScanUiState.NotFound -> ManualEntry(
@@ -123,13 +148,14 @@ fun ScanScreen(
                     headline = "この本の書誌情報が見つかりませんでした",
                     description = "データベースに未登録の本です。お手数ですが手入力で登録してください。",
                     onSave = viewModel::saveManual,
-                    onRescan = viewModel::reset,
+                    onRescan = viewModel::showScanner,
                 )
 
                 is ScanUiState.Failed -> Message(
                     title = "読み取れませんでした",
                     body = s.message,
-                    onRetry = viewModel::reset,
+                    onRetry = viewModel::showScanner,
+                    onTypeIsbn = viewModel::showIsbnInput,
                 )
 
                 is ScanUiState.Saved -> Centered { CircularProgressIndicator() }
@@ -152,7 +178,7 @@ private fun Centered(content: @Composable () -> Unit) {
  * 下段を読んでしまう誤操作が非常に多いため、何が起きたかを具体的に説明する。
  */
 @Composable
-private fun PriceCodeGuidance(onRetry: () -> Unit) {
+private fun PriceCodeGuidance(onRetry: () -> Unit, onTypeIsbn: () -> Unit) {
     Column {
         Text("下の段を読み取りました", style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(12.dp))
@@ -176,11 +202,15 @@ private fun PriceCodeGuidance(onRetry: () -> Unit) {
         Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
             Text("上段を読み取る")
         }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onTypeIsbn, modifier = Modifier.fillMaxWidth()) {
+            Text("ISBN を手入力する")
+        }
     }
 }
 
 @Composable
-private fun Message(title: String, body: String, onRetry: () -> Unit) {
+private fun Message(title: String, body: String, onRetry: () -> Unit, onTypeIsbn: () -> Unit) {
     Column {
         Text(title, style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(12.dp))
@@ -188,6 +218,10 @@ private fun Message(title: String, body: String, onRetry: () -> Unit) {
         Spacer(Modifier.height(20.dp))
         Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
             Text("もう一度読み取る")
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onTypeIsbn, modifier = Modifier.fillMaxWidth()) {
+            Text("ISBN を手入力する")
         }
     }
 }
@@ -353,6 +387,87 @@ private fun ManualEntry(
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onRescan, modifier = Modifier.fillMaxWidth()) {
             Text("もう一度読み取る")
+        }
+    }
+}
+
+/**
+ * カメラを閉じたときの受け皿。
+ * ここで行き止まりにすると「バーコードが読めない本は登録できない」アプリになってしまう。
+ */
+@Composable
+private fun ChooseMethod(
+    hint: String?,
+    onScan: () -> Unit,
+    onTypeIsbn: () -> Unit,
+    onTypeBook: () -> Unit,
+    onBack: () -> Unit,
+) {
+    Column {
+        Text("本の追加方法", style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.height(16.dp))
+
+        Button(onClick = onScan, modifier = Modifier.fillMaxWidth()) {
+            Text("バーコードを読み取る")
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onTypeIsbn, modifier = Modifier.fillMaxWidth()) {
+            Text("ISBN を手入力する")
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onTypeBook, modifier = Modifier.fillMaxWidth()) {
+            Text("本の情報を直接入力する")
+        }
+
+        Spacer(Modifier.height(16.dp))
+        Text(
+            hint ?: "バーコードが汚れている、カバーで隠れている、電子書籍で現物が無いといった場合は " +
+                "ISBN の手入力が使えます。",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        Spacer(Modifier.height(20.dp))
+        TextButton(onClick = onBack) { Text("本棚に戻る") }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun IsbnInput(onSubmit: (String) -> Unit, onCancel: () -> Unit) {
+    var isbn by rememberSaveable { mutableStateOf("") }
+    // ハイフンを除いた桁数で判定する (978-4-87311-565-8 のような入力を許すため)
+    val digits = isbn.count { it.isDigit() || it == 'X' || it == 'x' }
+
+    Column {
+        Text("ISBN を入力", style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.height(12.dp))
+        Text(
+            "本の裏表紙やカバー袖に印刷されている番号です。ハイフンは入れても入れなくても構いません。",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        Spacer(Modifier.height(20.dp))
+        OutlinedTextField(
+            value = isbn,
+            onValueChange = { isbn = it.take(20) },
+            label = { Text("ISBN (10桁 または 13桁)") },
+            placeholder = { Text("978-4-87311-565-8") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Spacer(Modifier.height(20.dp))
+        Button(
+            onClick = { onSubmit(isbn) },
+            enabled = digits == 10 || digits == 13,
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text("この ISBN で検索") }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
+            Text("戻る")
         }
     }
 }

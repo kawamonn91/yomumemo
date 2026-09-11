@@ -20,6 +20,24 @@ sealed interface ScanUiState {
     /** スキャナ起動待ち。 */
     data object Idle : ScanUiState
 
+    /**
+     * スキャナが結果を返さずに閉じたときの受け皿。
+     *
+     * 利用者が自分で閉じた場合と、読み取りに失敗した場合を区別したいが、
+     * SDK はこれを確実には教えてくれない。実機で戻る操作をすると
+     * CODE_SCANNER_CANCELLED(201) が返る一方、エミュレータの疑似カメラでは
+     * INTERNAL(13) になる。誤って「読み取れませんでした」と出すと、
+     * 自分で閉じた利用者を責めることになるため、どちらも同じ画面に集約し、
+     * 心当たりのある人向けのヒントだけを添える。
+     */
+    data class Choose(val hint: String? = null) : ScanUiState
+
+    /** ISBN を手で入力する。 */
+    data object TypingIsbn : ScanUiState
+
+    /** 書誌検索を介さず本の情報を直接入力する。 */
+    data object TypingBook : ScanUiState
+
     data class LookingUp(val isbn13: String) : ScanUiState
 
     /** 書誌が取れた。登録するか確認する。 */
@@ -63,12 +81,32 @@ class ScanViewModel(
         }
     }
 
+    /** カメラを閉じた。戻らずに代替手段を示す。 */
     fun onScanCancelled() {
+        _state.value = ScanUiState.Choose()
+    }
+
+    fun showScanner() {
         _state.value = ScanUiState.Idle
     }
 
-    fun onScanFailed(message: String?) {
-        _state.value = ScanUiState.Failed(message ?: "バーコードを読み取れませんでした。")
+    fun showIsbnInput() {
+        _state.value = ScanUiState.TypingIsbn
+    }
+
+    fun showBookInput() {
+        _state.value = ScanUiState.TypingBook
+    }
+
+    /**
+     * 読み取れずに終わった。SDK の例外メッセージは英語なので画面には出さない。
+     * 自分で閉じた場合と区別がつかないため、断定を避けたヒントを添えるに留める。
+     */
+    fun onScanFailed() {
+        _state.value = ScanUiState.Choose(
+            hint = "うまく読み取れないときは、明るい場所でバーコード全体が枠に入るようにするか、" +
+                "ISBN の手入力をお試しください。",
+        )
     }
 
     /** ISBN を手で入力した場合。 */
