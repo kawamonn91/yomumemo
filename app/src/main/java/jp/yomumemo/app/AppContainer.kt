@@ -13,6 +13,7 @@ import jp.yomumemo.app.data.remote.OkHttpFetcher
 import jp.yomumemo.app.data.remote.OpenBdApi
 import jp.yomumemo.app.data.repo.BookRepository
 import jp.yomumemo.app.data.repo.NoteRepository
+import jp.yomumemo.app.sync.SnapshotRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -41,6 +42,10 @@ class AppContainer(context: Context) {
     val noteRepository: NoteRepository by lazy { NoteRepository(database.noteDao()) }
 
     val entitlements: EntitlementRepository by lazy { EntitlementRepository(settings) }
+
+    val snapshots: SnapshotRepository by lazy {
+        SnapshotRepository(database.bookDao(), database.noteDao())
+    }
 
     val billing: BillingManager by lazy {
         BillingManager(

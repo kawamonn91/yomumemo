@@ -8,6 +8,7 @@ import jp.yomumemo.app.data.repo.NoteRepository
 import jp.yomumemo.app.export.BookWithNotes
 import jp.yomumemo.app.export.ExportFormat
 import jp.yomumemo.app.export.NoteExporter
+import jp.yomumemo.app.sync.SnapshotRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +29,7 @@ class SettingsViewModel(
     private val books: BookRepository,
     private val notes: NoteRepository,
     private val entitlements: EntitlementRepository,
+    private val snapshots: SnapshotRepository,
 ) : ViewModel() {
 
     private val message = MutableStateFlow<String?>(null)
@@ -92,5 +94,49 @@ class SettingsViewModel(
 
     fun clearMessage() {
         message.value = null
+    }
+
+    // --- バックアップと復元 ---
+
+    /**
+     * バックアップの中身を作る。書き出しと違い、こちらは削除済みの記録も含む
+     * 完全な写しを作る。復元したときに削除が巻き戻らないようにするため。
+     */
+    fun buildBackup(onReady: (String) -> Unit) {
+        viewModelScope.launch {
+            exporting.value = true
+            try {
+                onReady(snapshots.encode(snapshots.capture()))
+            } finally {
+                exporting.value = false
+            }
+        }
+    }
+
+    fun backupFileName(): String = "yomumemo-backup.json"
+
+    /**
+     * バックアップを取り込む。
+     * 置き換えではなく統合なので、復元しても手元の新しい編集は消えない。
+     */
+    fun restoreFrom(content: String) {
+        viewModelScope.launch {
+            val snapshot = snapshots.decode(content)
+            if (snapshot == null) {
+                message.value = "バックアップとして読み取れないファイルでした。"
+                return@launch
+            }
+            val result = snapshots.merge(snapshot)
+            message.value = "復元しました。本 " + result.booksUpdatedLocally +
+                " 件、メモ " + result.notesUpdatedLocally + " 件を取り込みました。"
+        }
+    }
+
+    fun onBackupFinished(success: Boolean) {
+        message.value = if (success) {
+            "バックアップを保存しました。"
+        } else {
+            "バックアップを保存できませんでした。"
+        }
     }
 }

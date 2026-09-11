@@ -52,6 +52,7 @@ fun SettingsScreen(
     // 書き出す内容と形式は、保存先を選ぶダイアログから戻ってきたときに必要になる
     var pendingContent by remember { mutableStateOf<String?>(null) }
     var pendingFormat by remember { mutableStateOf(ExportFormat.MARKDOWN) }
+    var backupContent by remember { mutableStateOf<String?>(null) }
 
     val createDocument = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument(pendingFormat.mimeType),
@@ -64,6 +65,27 @@ fun SettingsScreen(
         }
         val ok = content != null && writeToUri(context, uri, content)
         viewModel.onExportFinished(ok, pendingFormat)
+    }
+
+    val createBackup = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri: Uri? ->
+        val content = backupContent
+        backupContent = null
+        if (uri == null || content == null) return@rememberLauncherForActivityResult
+        viewModel.onBackupFinished(writeToUri(context, uri, content))
+    }
+
+    val openBackup = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri: Uri? ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val content = readFromUri(context, uri)
+        if (content == null) {
+            viewModel.onBackupFinished(false)
+        } else {
+            viewModel.restoreFrom(content)
+        }
     }
 
     Scaffold(
@@ -149,6 +171,31 @@ fun SettingsScreen(
                 Text(it, style = MaterialTheme.typography.bodyMedium)
             }
 
+            Spacer(Modifier.height(24.dp))
+            SectionTitle("バックアップ")
+            Text(
+                "端末を変えるときや、万一に備えて控えを取っておけます。" +
+                    "復元は置き換えではなく統合なので、手元の新しいメモが消えることはありません。",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = {
+                    viewModel.buildBackup { content ->
+                        backupContent = content
+                        createBackup.launch(viewModel.backupFileName())
+                    }
+                },
+                enabled = !state.isExporting,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            ) { Text("バックアップを保存") }
+
+            OutlinedButton(
+                onClick = { openBackup.launch(arrayOf("application/json")) },
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            ) { Text("バックアップから復元") }
+
             Spacer(Modifier.height(32.dp))
             HorizontalDivider()
             Spacer(Modifier.height(16.dp))
@@ -179,6 +226,10 @@ private fun SectionTitle(text: String) {
  * 失敗しても落とさず false を返す。保存先が外部ストレージやクラウドの場合、
  * 権限や通信の都合で書き込めないことがある。
  */
+private fun readFromUri(context: Context, uri: Uri): String? = runCatching {
+    context.contentResolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) }
+}.getOrNull()
+
 private fun writeToUri(context: Context, uri: Uri, content: String): Boolean = runCatching {
     context.contentResolver.openOutputStream(uri)?.use { stream ->
         stream.write(content.toByteArray(Charsets.UTF_8))

@@ -91,7 +91,12 @@ private fun YomuMemoNavHost() {
             val vm: SettingsViewModel = viewModel(
                 factory = viewModelFactory {
                     initializer {
-                        SettingsViewModel(bookRepository, noteRepository, container.entitlements)
+                        SettingsViewModel(
+                            bookRepository,
+                            noteRepository,
+                            container.entitlements,
+                            container.snapshots,
+                        )
                     }
                 },
             )
