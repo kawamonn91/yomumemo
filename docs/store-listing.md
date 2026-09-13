@@ -210,9 +210,9 @@ Bibliographic data comes from openBD (openbd.jp), which is accurate for Japanese
 
 ### 価格についての考え方
 
-買い切りの生産性アプリとしては ¥600〜¥1,500 が相場帯。安すぎると「使い捨てのアプリ」に見え、
-高すぎると無料アプリと比較されて弾かれる。**¥900 前後**から始めて、
-売れ行きを見て調整するのが無難。Play Console では後から価格を変更できる。
+**¥300 で確定。** Web 版(microsaas モノレポの `apps/yomumemo`)と同じ価格に揃えた。
+同じサービスで価格が違うと、利用者の混乱や安い方への流出を招くため。
+Play Console では後から価格を変更できる。
 
 ### 手取りの目安
 
@@ -221,6 +221,7 @@ Bibliographic data comes from openBD (openbd.jp), which is accurate for Japanese
 
 | 価格 | 〜2026/12/30（15%） | 2026/12/31〜（10%） |
 |---|---|---|
+| **¥300** | **約 ¥255** | **約 ¥270** |
 | ¥600 | 約 ¥510 | 約 ¥540 |
 | ¥900 | 約 ¥765 | 約 ¥810 |
 | ¥1,200 | 約 ¥1,020 | 約 ¥1,080 |
