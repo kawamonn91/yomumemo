@@ -195,7 +195,7 @@ keytool -list -v -keystore keystore/yomumemo-upload.jks -alias yomumemo-upload
 | 種類 | 管理対象のアプリ内アイテム（非消費型） |
 | 名前 | ヨムメモ プレミアム |
 | 説明 | store-listing.md を参照 |
-| 価格 | ¥900 前後を推奨 |
+| 価格 | **¥300**（Web版と統一。決定済み） |
 
 **商品IDはコードに埋め込んである**（`BillingManager.PREMIUM_PRODUCT_ID`）。
 違う ID で登録すると商品が取得できず、購入ボタンが押せないままになる。
