@@ -1,5 +1,6 @@
 package jp.yomumemo.app.ui.scan
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import jp.yomumemo.app.billing.EntitlementRepository
@@ -64,6 +65,8 @@ sealed interface ScanUiState {
 
     data class Saved(val bookId: String) : ScanUiState
 }
+
+private const val TAG = "ScanViewModel"
 
 class ScanViewModel(
     private val lookup: BookLookupRepository,
@@ -161,8 +164,15 @@ class ScanViewModel(
                 _state.value = ScanUiState.LimitReached(EntitlementRepository.FREE_BOOK_LIMIT)
                 return@launch
             }
-            val id = books.addFromMetadata(metadata, status)
-            _state.value = ScanUiState.Saved(id)
+            // データベースへの書き込みは、想定していない例外(例:一意制約違反)が
+            // 起きてもアプリごと落とさない。原因は addFromMetadata 側で対処済みだが、
+            // 予期しない状況が起きても致命的にならないよう最後の砦として保護しておく。
+            runCatching { books.addFromMetadata(metadata, status) }
+                .onSuccess { id -> _state.value = ScanUiState.Saved(id) }
+                .onFailure { e ->
+                    Log.w(TAG, "本の登録に失敗しました", e)
+                    _state.value = ScanUiState.Failed("本を登録できませんでした。もう一度お試しください。")
+                }
         }
     }
 
@@ -182,14 +192,20 @@ class ScanViewModel(
                 _state.value = ScanUiState.LimitReached(EntitlementRepository.FREE_BOOK_LIMIT)
                 return@launch
             }
-            val id = books.addManual(
-                title = title,
-                authors = authors.split("、", ",").map(String::trim).filter(String::isNotEmpty),
-                publisher = publisher,
-                isbn13 = isbn13,
-                status = status,
-            )
-            _state.value = ScanUiState.Saved(id)
+            runCatching {
+                books.addManual(
+                    title = title,
+                    authors = authors.split("、", ",").map(String::trim).filter(String::isNotEmpty),
+                    publisher = publisher,
+                    isbn13 = isbn13,
+                    status = status,
+                )
+            }
+                .onSuccess { id -> _state.value = ScanUiState.Saved(id) }
+                .onFailure { e ->
+                    Log.w(TAG, "本の登録に失敗しました", e)
+                    _state.value = ScanUiState.Failed("本を登録できませんでした。もう一度お試しください。")
+                }
         }
     }
 

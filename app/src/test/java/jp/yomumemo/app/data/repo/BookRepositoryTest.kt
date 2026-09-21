@@ -125,6 +125,43 @@ class BookRepositoryTest {
     }
 
     @Test
+    fun `削除した本を同じISBNで登録し直すと新規行を作らず復元する`() = runTest {
+        // isbn13 には一意制約があるため、削除済みでも別行を新規INSERTすると
+        // 一意制約違反でクラッシュする(実機で確認された不具合)。復元されるべき。
+        val id = repo.addFromMetadata(sample)
+        repo.delete(id)
+
+        clock = 2_000L
+        val secondId = repo.addFromMetadata(sample)
+
+        assertEquals("削除前と同じ行が復元される(新しいIDが振られない)", id, secondId)
+        val restored = checkNotNull(dao.findById(id))
+        assertNull(restored.deletedAt)
+        assertEquals(1, repo.countActive())
+    }
+
+    @Test
+    fun `本棚にある本を同じISBNでもう一度登録しても行が重複しない`() = runTest {
+        val id = repo.addFromMetadata(sample)
+        val secondId = repo.addFromMetadata(sample.copy(title = "リーダブルコード(第2版)"))
+
+        assertEquals(id, secondId)
+        assertEquals(1, repo.countActive())
+        assertEquals("リーダブルコード(第2版)", dao.findById(id)?.title)
+    }
+
+    @Test
+    fun `手動登録でも同じISBNの削除済みの本があれば復元する`() = runTest {
+        val id = repo.addManual(title = "手動登録した本", isbn13 = "9784101010014")
+        repo.delete(id)
+
+        val secondId = repo.addManual(title = "手動登録した本(再登録)", isbn13 = "9784101010014")
+
+        assertEquals(id, secondId)
+        assertEquals(1, repo.countActive())
+    }
+
+    @Test
     fun `手動登録では著者を分解して保存する`() = runTest {
         val id = repo.addManual(title = "  自費出版の本  ", authors = listOf("著者A", "著者B"))
         val book = checkNotNull(dao.findById(id))

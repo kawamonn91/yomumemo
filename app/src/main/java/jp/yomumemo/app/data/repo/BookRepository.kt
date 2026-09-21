@@ -29,14 +29,23 @@ class BookRepository(
 
     suspend fun findById(id: String): BookEntity? = dao.findById(id)
 
-    /** 書誌検索の結果から登録する。 */
+    /**
+     * 書誌検索の結果から登録する。
+     *
+     * isbn13 には一意制約があるため、同じ ISBN の行(論理削除済みのものも含む)が
+     * 既にあればその行を上書き(削除済みなら復元)する。新規 INSERT に固定すると、
+     * 一度削除した本を再登録しようとしたときや、確認画面で「本棚に追加」を
+     * 連打したときなどに一意制約違反で例外が飛び、アプリごと落ちてしまう
+     * (実機で確認された不具合)。
+     */
     suspend fun addFromMetadata(
         metadata: BookMetadata,
         status: ReadingStatus = ReadingStatus.WANT,
     ): String {
         val timestamp = now()
+        val existing = metadata.isbn13.takeIf { it.isNotBlank() }?.let { dao.findByIsbnIncludingDeleted(it) }
         val book = BookEntity(
-            id = newId(),
+            id = existing?.id ?: newId(),
             isbn13 = metadata.isbn13,
             title = metadata.title,
             subtitle = metadata.subtitle,
@@ -47,17 +56,21 @@ class BookRepository(
             pageCount = metadata.pageCount,
             description = metadata.description,
             status = status,
-            addedAt = timestamp,
-            startedAt = if (status == ReadingStatus.READING) timestamp else null,
+            addedAt = existing?.addedAt ?: timestamp,
+            startedAt = existing?.startedAt ?: (timestamp.takeIf { status == ReadingStatus.READING }),
             updatedAt = timestamp,
+            deletedAt = null,
         )
-        dao.insert(book)
+        dao.upsert(book)
         return book.id
     }
 
     /**
      * 手動で登録する。
      * openBD にも補完元にも無い本は実在するため、この経路が必ず必要になる。
+     * ISBN 付きで手動登録する経路(書誌が見つからなかった場合)もあるため、
+     * addFromMetadata と同様に同じ ISBN の既存行(論理削除済み含む)があれば
+     * 上書き(復元)し、一意制約違反での クラッシュを避ける。
      */
     suspend fun addManual(
         title: String,
@@ -68,19 +81,21 @@ class BookRepository(
         status: ReadingStatus = ReadingStatus.WANT,
     ): String {
         val timestamp = now()
+        val existing = isbn13.takeIf { !it.isNullOrBlank() }?.let { dao.findByIsbnIncludingDeleted(it) }
         val book = BookEntity(
-            id = newId(),
+            id = existing?.id ?: newId(),
             isbn13 = isbn13,
             title = title.trim(),
             authors = authors,
             publisher = publisher?.trim()?.takeIf { it.isNotEmpty() },
             pageCount = pageCount,
             status = status,
-            addedAt = timestamp,
-            startedAt = if (status == ReadingStatus.READING) timestamp else null,
+            addedAt = existing?.addedAt ?: timestamp,
+            startedAt = existing?.startedAt ?: (timestamp.takeIf { status == ReadingStatus.READING }),
             updatedAt = timestamp,
+            deletedAt = null,
         )
-        dao.insert(book)
+        dao.upsert(book)
         return book.id
     }
 

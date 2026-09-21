@@ -28,6 +28,9 @@ class FakeBookDao : BookDao {
     override suspend fun findByIsbn(isbn13: String): BookEntity? =
         active().firstOrNull { it.isbn13 == isbn13 }
 
+    override suspend fun findByIsbnIncludingDeleted(isbn13: String): BookEntity? =
+        rows.value.values.firstOrNull { it.isbn13 == isbn13 }
+
     override suspend fun countActive(): Int = active().size
 
     override fun observeActiveCount(): Flow<Int> =
