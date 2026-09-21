@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -165,6 +168,11 @@ fun ScanScreen(
                     onBack = onBack,
                 )
 
+                ScanUiState.CameraPermissionBlocked -> CameraPermissionBlockedMessage(
+                    onRetry = viewModel::showScanner,
+                    onTypeIsbn = viewModel::showIsbnInput,
+                )
+
                 is ScanUiState.Saved -> Centered { CircularProgressIndicator() }
             }
         }
@@ -208,6 +216,46 @@ private fun PriceCodeGuidance(onRetry: () -> Unit, onTypeIsbn: () -> Unit) {
         Spacer(Modifier.height(20.dp))
         Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
             Text("上段を読み取る")
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onTypeIsbn, modifier = Modifier.fillMaxWidth()) {
+            Text("ISBN を手入力する")
+        }
+    }
+}
+
+/**
+ * Google Play 開発者サービス自身のカメラ権限が OS 側で無効化されているときの案内。
+ * このアプリ自体の権限設定をいくら見直しても解決しないため、
+ * 直接 Play 開発者サービスの設定画面を開けるようにする。
+ */
+@Composable
+private fun CameraPermissionBlockedMessage(onRetry: () -> Unit, onTypeIsbn: () -> Unit) {
+    val context = LocalContext.current
+
+    Column {
+        Text("カメラを起動できませんでした", style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.height(12.dp))
+        Text(
+            "バーコードの読み取りは「Google Play 開発者サービス」アプリがカメラを使って行いますが、" +
+                "そのカメラ権限が無効になっているようです。設定画面でカメラの利用を許可してから、" +
+                "もう一度お試しください。",
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Spacer(Modifier.height(20.dp))
+        Button(
+            onClick = {
+                context.startActivity(
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", "com.google.android.gms", null)
+                    },
+                )
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text("Google Play 開発者サービスの設定を開く") }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
+            Text("もう一度読み取る")
         }
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onTypeIsbn, modifier = Modifier.fillMaxWidth()) {

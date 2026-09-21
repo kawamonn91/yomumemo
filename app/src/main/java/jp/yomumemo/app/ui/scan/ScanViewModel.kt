@@ -53,6 +53,12 @@ sealed interface ScanUiState {
     data class LimitReached(val limit: Int) : ScanUiState
 
     /**
+     * Google Play 開発者サービス自身のカメラ権限が OS 側で無効化されていて起動できない。
+     * 「読み取れない」の中でも原因と対処法がはっきりしているため、専用の案内を出す。
+     */
+    data object CameraPermissionBlocked : ScanUiState
+
+    /**
      * 日本の書籍バーコードの下段(価格コード)を読んだ。
      * 誤操作として最も多いので、専用の案内を出す。
      */
@@ -106,13 +112,11 @@ class ScanViewModel(
 
     /**
      * 読み取れずに終わった。SDK の例外メッセージは英語なので画面には出さない。
-     * 自分で閉じた場合と区別がつかないため、断定を避けたヒントを添えるに留める。
+     * 原因を分類できた場合はそれぞれに合った案内を、分類できない場合(自分で閉じた場合との
+     * 区別がつかないケースを含む)は断定を避けたヒントを添えるに留める。
      */
-    fun onScanFailed() {
-        _state.value = ScanUiState.Choose(
-            hint = "うまく読み取れないときは、明るい場所でバーコード全体が枠に入るようにするか、" +
-                "ISBN の手入力をお試しください。",
-        )
+    fun onScanFailed(reason: BarcodeScanFailure) {
+        _state.value = scanFailureToUiState(reason)
     }
 
     /** ISBN を手で入力した場合。 */
@@ -200,6 +204,24 @@ class ScanViewModel(
     fun reset() {
         _state.value = ScanUiState.Idle
     }
+}
+
+/**
+ * [BarcodeScanFailure] をユーザーに見せる状態に変換する。
+ * ViewModel の外に出しておくことで、実の依存(DB・ネットワーク)を用意せずにテストできる。
+ */
+internal fun scanFailureToUiState(reason: BarcodeScanFailure): ScanUiState = when (reason) {
+    BarcodeScanFailure.CameraPermissionBlocked -> ScanUiState.CameraPermissionBlocked
+
+    BarcodeScanFailure.ScannerUnavailable -> ScanUiState.Choose(
+        hint = "バーコード読み取り機能を利用できませんでした。Google Play 開発者サービスを" +
+            "最新版に更新するか、通信状態の良い場所でもう一度お試しください。",
+    )
+
+    BarcodeScanFailure.Unknown -> ScanUiState.Choose(
+        hint = "うまく読み取れないときは、明るい場所でバーコード全体が枠に入るようにするか、" +
+            "ISBN の手入力をお試しください。",
+    )
 }
 
 private fun BookEntity.toMetadata() = BookMetadata(

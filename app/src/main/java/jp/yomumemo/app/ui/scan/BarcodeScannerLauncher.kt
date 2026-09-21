@@ -6,6 +6,7 @@ import com.google.mlkit.common.MlKitException
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Google code scanner を起動する。
@@ -20,12 +21,24 @@ object BarcodeScannerLauncher {
 
     private const val TAG = "BarcodeScanner"
 
+    /**
+     * 呼び出し側(Compose の LaunchedEffect)が短時間に二重に呼んでしまっても、
+     * SDK に `CODE_SCANNER_TASK_IN_PROGRESS` で弾かれてユーザーにエラーを見せることがないよう、
+     * 実行中は新しい呼び出しを無視する。
+     */
+    private val scanning = AtomicBoolean(false)
+
     fun scan(
         context: Context,
         onSuccess: (String) -> Unit,
         onCancelled: () -> Unit,
-        onFailure: () -> Unit,
+        onFailure: (BarcodeScanFailure) -> Unit,
     ) {
+        if (!scanning.compareAndSet(false, true)) {
+            Log.w(TAG, "スキャンが既に実行中のため、今回の呼び出しは無視します")
+            return
+        }
+
         val options = GmsBarcodeScannerOptions.Builder()
             .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8)
             // 棚差しの本や小さなバーコードでも合焦しやすくする
@@ -35,24 +48,36 @@ object BarcodeScannerLauncher {
         GmsBarcodeScanning.getClient(context, options)
             .startScan()
             .addOnSuccessListener { barcode ->
+                scanning.set(false)
                 val raw = barcode.rawValue
-                if (raw.isNullOrBlank()) onFailure() else onSuccess(raw)
+                if (raw.isNullOrBlank()) onFailure(BarcodeScanFailure.Unknown) else onSuccess(raw)
             }
-            .addOnCanceledListener(onCancelled)
+            .addOnCanceledListener {
+                scanning.set(false)
+                onCancelled()
+            }
             .addOnFailureListener { error ->
+                scanning.set(false)
+                val code = (error as? MlKitException)?.errorCode
                 // 実機・エミュレータともに、戻る操作は addOnCanceledListener ではなく
                 // CODE_SCANNER_CANCELLED の失敗として届くことがある。
                 // ユーザーの意図は「やめた」なので、失敗ではなくキャンセルとして扱う。
-                val cancelled = error is MlKitException &&
-                    error.errorCode == MlKitException.CODE_SCANNER_CANCELLED
-                if (cancelled) {
+                if (code == MlKitException.CODE_SCANNER_CANCELLED) {
                     onCancelled()
-                } else {
-                    // SDK の例外メッセージは英語なので、画面には出さずログにだけ残す
-                    val code = (error as? MlKitException)?.errorCode
-                    Log.w(TAG, "バーコードの読み取りに失敗しました errorCode=" + code, error)
-                    onFailure()
+                    return@addOnFailureListener
                 }
+                // SDK の例外メッセージは英語なので、画面には出さずログにだけ残す
+                Log.w(TAG, "バーコードの読み取りに失敗しました errorCode=$code", error)
+                onFailure(
+                    when (code) {
+                        MlKitException.CODE_SCANNER_CAMERA_PERMISSION_NOT_GRANTED ->
+                            BarcodeScanFailure.CameraPermissionBlocked
+                        MlKitException.CODE_SCANNER_UNAVAILABLE,
+                        MlKitException.CODE_SCANNER_GOOGLE_PLAY_SERVICES_VERSION_TOO_OLD ->
+                            BarcodeScanFailure.ScannerUnavailable
+                        else -> BarcodeScanFailure.Unknown
+                    },
+                )
             }
     }
 }
