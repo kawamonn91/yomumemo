@@ -116,7 +116,7 @@ private fun CameraPreviewWithAnalysis(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val executor = remember { Executors.newSingleThreadExecutor() }
-    DisposableEffect(Unit) { onDispose { executor.shutdown() } }
+    DisposableEffect(Unit) { onDispose { runCatching { executor.shutdown() } } }
 
     val scanner = remember {
         BarcodeScanning.getClient(
@@ -125,7 +125,11 @@ private fun CameraPreviewWithAnalysis(
                 .build(),
         )
     }
-    DisposableEffect(Unit) { onDispose { scanner.close() } }
+    // close() は「この画面を離れるとき」のみに限定する(後述のとおり、スキャン成功時は
+    // 呼び出し元のコールバックの中から自分自身を close() すると危険なため、ここでは
+    // 呼ばない)。onDispose 自体は runCatching で保護し、後片付けの失敗でアプリごと
+    // 落ちることがないようにする。
+    DisposableEffect(Unit) { onDispose { runCatching { scanner.close() } } }
 
     // 1回のスキャンで複数フレームから重複してコールバックしないようにするガード。
     // アナライザーはCameraXの別スレッドで動くため AtomicBoolean を使う。
@@ -137,10 +141,14 @@ private fun CameraPreviewWithAnalysis(
     // 操作をするとCameraXの内部状態が残ったままになり、次のカメラ起動が失敗することがあった)
     val previewView = remember { PreviewView(context) }
 
+    // バーコードを検出した時点でカメラを止めるために、取得できたプロバイダをここに控えておく。
+    val providerHolder = remember { arrayOfNulls<ProcessCameraProvider>(1) }
+
     DisposableEffect(lifecycleOwner) {
         val providerFuture = ProcessCameraProvider.getInstance(context)
         val listener = Runnable {
             val provider = providerFuture.get()
+            providerHolder[0] = provider
             val preview = Preview.Builder().build().also {
                 it.surfaceProvider = previewView.surfaceProvider
             }
@@ -159,6 +167,14 @@ private fun CameraPreviewWithAnalysis(
                             .addOnSuccessListener { barcodes ->
                                 val raw = barcodes.firstOrNull { !it.rawValue.isNullOrBlank() }?.rawValue
                                 if (raw != null && handled.compareAndSet(false, true)) {
+                                    // バーコードを検出できたらすぐにカメラを止める。
+                                    // このAndroidView(BarcodeCameraScanner)がComposeの
+                                    // 画面遷移で破棄されるのを待ってから unbindAll するのでは
+                                    // 遅く、その間に次のフレームの解析結果コールバックが
+                                    // 割り込むことがあった(検出直後に画面が切り替わるほど
+                                    // 起きやすい)。ここで即座に止めることでその競合を無くす。
+                                    runCatching { providerHolder[0]?.unbindAll() }
+                                        .onFailure { e -> Log.w(TAG, "カメラの停止に失敗しました", e) }
                                     onScanned(raw)
                                 }
                             }
@@ -179,8 +195,10 @@ private fun CameraPreviewWithAnalysis(
         onDispose {
             // この画面を離れるとき(閉じる・別の本を読み取る・登録完了 等)は必ず解放する。
             // まだ取得中(addListenerが未発火)の場合に備え、取得できたときだけunbindする。
+            // 失敗してもアプリを落とさない。
             if (providerFuture.isDone) {
                 runCatching { providerFuture.get().unbindAll() }
+                    .onFailure { e -> Log.w(TAG, "カメラの解放に失敗しました", e) }
             }
         }
     }

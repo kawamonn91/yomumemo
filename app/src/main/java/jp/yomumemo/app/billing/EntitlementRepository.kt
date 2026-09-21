@@ -2,6 +2,7 @@ package jp.yomumemo.app.billing
 
 import jp.yomumemo.app.data.prefs.SettingsStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 /** 課金で解放される機能。 */
@@ -26,8 +27,15 @@ class EntitlementRepository(
     private val settings: SettingsStore,
 ) {
 
-    /** プレミアムが有効か。Play に確認できない間は控えている値を使う。 */
-    val isPremium: Flow<Boolean> = settings.isPremiumCached
+    /**
+     * プレミアムが有効か。
+     *
+     * T-tech Store経由の配布ではGoogle Play Billingでの購入処理自体が成立しない
+     * (Playストア以外からインストールしたアプリはPlay Billingの決済を完了できない)。
+     * 買えないのに機能を制限したままにする理由が無いため、この配布では常に全機能を
+     * 無料で使えるようにする(指示: 「Store内のアプリは無料で使えるようにしてほしい」)。
+     */
+    val isPremium: Flow<Boolean> = flowOf(true)
 
     fun canUse(feature: PremiumFeature): Flow<Boolean> = isPremium.map { premium ->
         when (feature) {
