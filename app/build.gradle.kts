@@ -36,8 +36,8 @@ android {
         applicationId = "jp.yomumemo.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 4
+        versionName = "1.0.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "GOOGLE_BOOKS_API_KEY", "\"" + googleBooksApiKey + "\"")
@@ -61,8 +61,13 @@ android {
         }
         release {
             signingConfig = signingConfigs.findByName("release")
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // 本来はtrueにしたいが、R8(shrink/obfuscate、-dontoptimizeにしても再現)が
+            // CameraXのProcessCameraProvider非同期コールバック + Compose(AndroidView)の
+            // 組み合わせでNullPointerExceptionを生む不具合を実機再現で確認した
+            // (debugビルド=R8なしでは再現しない)。原因のR8最適化を特定できるまでの
+            // 暫定処置として無効化する。TODO: 原因を特定し次第 true に戻す。
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -126,8 +131,8 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
 
-    // バーコード読み取り: カメラ権限不要の Google code scanner
-    implementation(libs.play.services.code.scanner)
+    // バーコード読み取り: オンデバイスのML Kit(引用文の読み取りと同じCameraX方式)
+    implementation(libs.barcode.scanning)
 
     // 課金 (買い切りのプレミアム解除)
     implementation(libs.billing.ktx)

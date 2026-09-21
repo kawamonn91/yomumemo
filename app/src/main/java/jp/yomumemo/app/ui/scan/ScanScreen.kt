@@ -1,6 +1,7 @@
 package jp.yomumemo.app.ui.scan
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,9 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import android.content.Intent
-import android.net.Uri
-import android.provider.Settings
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -40,7 +38,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -59,18 +56,8 @@ fun ScanScreen(
     onBack: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val context = LocalContext.current
 
-    // Idle に入るたびにスキャナを起動する(再スキャンもこの経路で行う)
     LaunchedEffect(state) {
-        if (state is ScanUiState.Idle) {
-            BarcodeScannerLauncher.scan(
-                context = context,
-                onSuccess = viewModel::onScanned,
-                onCancelled = viewModel::onScanCancelled,
-                onFailure = viewModel::onScanFailed,
-            )
-        }
         if (state is ScanUiState.Saved) {
             onSaved((state as ScanUiState.Saved).bookId)
             viewModel.reset()
@@ -89,6 +76,19 @@ fun ScanScreen(
             )
         },
     ) { inner ->
+        // カメラ表示は全面を使いたいので、スクロールするColumnの外で扱う
+        if (state is ScanUiState.Idle) {
+            Box(Modifier.padding(inner).fillMaxSize()) {
+                BarcodeCameraScanner(
+                    onScanned = viewModel::onScanned,
+                    onFailed = viewModel::onScanFailed,
+                    onManualEntry = viewModel::showIsbnInput,
+                    onCancel = viewModel::onScanCancelled,
+                )
+            }
+            return@Scaffold
+        }
+
         Column(
             modifier = Modifier
                 .padding(inner)
@@ -97,7 +97,8 @@ fun ScanScreen(
                 .padding(20.dp),
         ) {
             when (val s = state) {
-                ScanUiState.Idle -> Centered { Text("バーコードを読み取っています…") }
+                // Idle はこのブロックの手前で処理済み(カメラは全画面表示にするため)
+                ScanUiState.Idle -> Unit
 
                 is ScanUiState.Choose -> ChooseMethod(
                     hint = s.hint,
@@ -168,11 +169,6 @@ fun ScanScreen(
                     onBack = onBack,
                 )
 
-                ScanUiState.CameraPermissionBlocked -> CameraPermissionBlockedMessage(
-                    onRetry = viewModel::showScanner,
-                    onTypeIsbn = viewModel::showIsbnInput,
-                )
-
                 is ScanUiState.Saved -> Centered { CircularProgressIndicator() }
             }
         }
@@ -216,46 +212,6 @@ private fun PriceCodeGuidance(onRetry: () -> Unit, onTypeIsbn: () -> Unit) {
         Spacer(Modifier.height(20.dp))
         Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
             Text("上段を読み取る")
-        }
-        Spacer(Modifier.height(8.dp))
-        OutlinedButton(onClick = onTypeIsbn, modifier = Modifier.fillMaxWidth()) {
-            Text("ISBN を手入力する")
-        }
-    }
-}
-
-/**
- * Google Play 開発者サービス自身のカメラ権限が OS 側で無効化されているときの案内。
- * このアプリ自体の権限設定をいくら見直しても解決しないため、
- * 直接 Play 開発者サービスの設定画面を開けるようにする。
- */
-@Composable
-private fun CameraPermissionBlockedMessage(onRetry: () -> Unit, onTypeIsbn: () -> Unit) {
-    val context = LocalContext.current
-
-    Column {
-        Text("カメラを起動できませんでした", style = MaterialTheme.typography.titleLarge)
-        Spacer(Modifier.height(12.dp))
-        Text(
-            "バーコードの読み取りは「Google Play 開発者サービス」アプリがカメラを使って行いますが、" +
-                "そのカメラ権限が無効になっているようです。設定画面でカメラの利用を許可してから、" +
-                "もう一度お試しください。",
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        Spacer(Modifier.height(20.dp))
-        Button(
-            onClick = {
-                context.startActivity(
-                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                        data = Uri.fromParts("package", "com.google.android.gms", null)
-                    },
-                )
-            },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text("Google Play 開発者サービスの設定を開く") }
-        Spacer(Modifier.height(8.dp))
-        OutlinedButton(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
-            Text("もう一度読み取る")
         }
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onTypeIsbn, modifier = Modifier.fillMaxWidth()) {

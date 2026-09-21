@@ -17,7 +17,7 @@ coil = "3.6.2"
 
 # Phase 2-3 で使用
 billing = "9.1.0"
-codeScanner = "16.1.0"
+barcodeScanning = "17.3.0"
 mlkitTextJa = "16.0.1"
 playServicesAuth = "22.0.0"
 credentials = "1.6.0"
@@ -63,7 +63,11 @@ coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref 
 coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
 
 billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "billing" }
-play-services-code-scanner = { group = "com.google.android.gms", name = "play-services-code-scanner", version.ref = "codeScanner" }
+# オンデバイスのバーコード検出。以前使っていた play-services-code-scanner(別プロセスの
+# 専用UIを起動する方式)は2023年8月から更新が止まっており、モジュール初期化まわりの
+# NullPointerExceptionが未修正のまま残っている(起動直後にアプリごと落ちる)。
+# 引用文の読み取り(QuoteOcrScreen)と同じ「自前のCameraX + オンデバイスML Kit」方式に統一した。
+barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "barcodeScanning" }
 mlkit-text-recognition-japanese = { group = "com.google.android.gms", name = "play-services-mlkit-text-recognition-japanese", version.ref = "mlkitTextJa" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
