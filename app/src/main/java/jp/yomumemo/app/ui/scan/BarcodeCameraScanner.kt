@@ -131,50 +131,62 @@ private fun CameraPreviewWithAnalysis(
     // アナライザーはCameraXの別スレッドで動くため AtomicBoolean を使う。
     val handled = remember { AtomicBoolean(false) }
 
-    Box(Modifier.fillMaxSize()) {
-        AndroidView(
-            modifier = Modifier.fillMaxSize(),
-            factory = { ctx ->
-                val previewView = PreviewView(ctx)
-                val providerFuture = ProcessCameraProvider.getInstance(ctx)
-                providerFuture.addListener({
-                    val provider = providerFuture.get()
-                    val preview = Preview.Builder().build().also {
-                        it.surfaceProvider = previewView.surfaceProvider
-                    }
-                    val analysis = ImageAnalysis.Builder()
-                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                        .build()
-                        .also { imageAnalysis ->
-                            imageAnalysis.setAnalyzer(executor) { imageProxy ->
-                                val mediaImage = imageProxy.image
-                                if (mediaImage == null || handled.get()) {
-                                    imageProxy.close()
-                                    return@setAnalyzer
-                                }
-                                val input = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-                                scanner.process(input)
-                                    .addOnSuccessListener { barcodes ->
-                                        val raw = barcodes.firstOrNull { !it.rawValue.isNullOrBlank() }?.rawValue
-                                        if (raw != null && handled.compareAndSet(false, true)) {
-                                            onScanned(raw)
-                                        }
-                                    }
-                                    .addOnFailureListener { e -> Log.w(TAG, "解析に失敗しました", e) }
-                                    .addOnCompleteListener { imageProxy.close() }
-                            }
+    // PreviewView自体は remember で使い回し、バインド/解放は DisposableEffect で明示的に行う。
+    // (以前はAndroidViewのfactory内で bindToLifecycle するだけで unbindAll を呼んでおらず、
+    // 「間違ったバーコードを読んだ後にもう一度読み取る」など、この画面を抜けてすぐ入り直す
+    // 操作をするとCameraXの内部状態が残ったままになり、次のカメラ起動が失敗することがあった)
+    val previewView = remember { PreviewView(context) }
+
+    DisposableEffect(lifecycleOwner) {
+        val providerFuture = ProcessCameraProvider.getInstance(context)
+        val listener = Runnable {
+            val provider = providerFuture.get()
+            val preview = Preview.Builder().build().also {
+                it.surfaceProvider = previewView.surfaceProvider
+            }
+            val analysis = ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build()
+                .also { imageAnalysis ->
+                    imageAnalysis.setAnalyzer(executor) { imageProxy ->
+                        val mediaImage = imageProxy.image
+                        if (mediaImage == null || handled.get()) {
+                            imageProxy.close()
+                            return@setAnalyzer
                         }
-                    runCatching {
-                        provider.unbindAll()
-                        provider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
-                    }.onFailure { e ->
-                        Log.w(TAG, "カメラを起動できません", e)
-                        onFailed()
+                        val input = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+                        scanner.process(input)
+                            .addOnSuccessListener { barcodes ->
+                                val raw = barcodes.firstOrNull { !it.rawValue.isNullOrBlank() }?.rawValue
+                                if (raw != null && handled.compareAndSet(false, true)) {
+                                    onScanned(raw)
+                                }
+                            }
+                            .addOnFailureListener { e -> Log.w(TAG, "解析に失敗しました", e) }
+                            .addOnCompleteListener { imageProxy.close() }
                     }
-                }, ContextCompat.getMainExecutor(ctx))
-                previewView
-            },
-        )
+                }
+            runCatching {
+                provider.unbindAll()
+                provider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
+            }.onFailure { e ->
+                Log.w(TAG, "カメラを起動できません", e)
+                onFailed()
+            }
+        }
+        providerFuture.addListener(listener, ContextCompat.getMainExecutor(context))
+
+        onDispose {
+            // この画面を離れるとき(閉じる・別の本を読み取る・登録完了 等)は必ず解放する。
+            // まだ取得中(addListenerが未発火)の場合に備え、取得できたときだけunbindする。
+            if (providerFuture.isDone) {
+                runCatching { providerFuture.get().unbindAll() }
+            }
+        }
+    }
+
+    Box(Modifier.fillMaxSize()) {
+        AndroidView(modifier = Modifier.fillMaxSize(), factory = { previewView })
 
         // バーコードを合わせる位置の目安(装飾のみ。判定領域は絞っていない)
         Box(
