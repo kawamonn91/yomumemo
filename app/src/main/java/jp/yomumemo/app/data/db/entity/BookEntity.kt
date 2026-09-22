@@ -32,6 +32,12 @@ data class BookEntity(
     val publisher: String? = null,
     val publishedDate: String? = null,
     val coverUrl: String? = null,
+    /**
+     * 自分で撮影した表紙画像の端末内絶対パス。書誌データに表紙が無かった/合わなかった
+     * ときのために撮り直せるようにしたもので、あれば [coverUrl] より優先して表示する。
+     * 端末のアプリ専用領域を指すため他端末には同期しない([sync.Snapshot] には含めない)。
+     */
+    val localCoverPath: String? = null,
     val pageCount: Int? = null,
     val description: String? = null,
     val status: ReadingStatus = ReadingStatus.WANT,
@@ -42,4 +48,8 @@ data class BookEntity(
     val finishedAt: Long? = null,
     val updatedAt: Long,
     val deletedAt: Long? = null,
-)
+) {
+    /** 表示すべき表紙。自分で撮影した分があればそちらを優先する。 */
+    val displayCoverUrl: String?
+        get() = localCoverPath?.let { "file://$it" } ?: coverUrl
+}

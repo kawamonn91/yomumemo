@@ -1,9 +1,11 @@
 package jp.yomumemo.app.ui.scan
 
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import jp.yomumemo.app.billing.EntitlementRepository
+import jp.yomumemo.app.data.CoverImageStore
 import jp.yomumemo.app.data.db.entity.BookEntity
 import jp.yomumemo.app.data.db.entity.ReadingStatus
 import jp.yomumemo.app.data.remote.BookLookupRepository
@@ -13,11 +15,13 @@ import jp.yomumemo.app.domain.LookupResult
 import jp.yomumemo.app.util.Isbn
 import jp.yomumemo.app.util.ScanOutcome
 import jp.yomumemo.app.util.interpretScannedCode
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 sealed interface ScanUiState {
     /** 自前のカメラ(BarcodeCameraScanner)でスキャン中。 */
@@ -72,6 +76,7 @@ class ScanViewModel(
     private val lookup: BookLookupRepository,
     private val books: BookRepository,
     private val entitlements: EntitlementRepository,
+    private val coverImages: CoverImageStore,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<ScanUiState>(ScanUiState.Idle)
@@ -158,7 +163,7 @@ class ScanViewModel(
         return books.countActive() < limit
     }
 
-    fun save(metadata: BookMetadata, status: ReadingStatus) {
+    fun save(metadata: BookMetadata, status: ReadingStatus, coverUri: Uri? = null) {
         viewModelScope.launch {
             if (!withinBookLimit()) {
                 _state.value = ScanUiState.LimitReached(EntitlementRepository.FREE_BOOK_LIMIT)
@@ -168,7 +173,10 @@ class ScanViewModel(
             // 起きてもアプリごと落とさない。原因は addFromMetadata 側で対処済みだが、
             // 予期しない状況が起きても致命的にならないよう最後の砦として保護しておく。
             runCatching { books.addFromMetadata(metadata, status) }
-                .onSuccess { id -> _state.value = ScanUiState.Saved(id) }
+                .onSuccess { id ->
+                    saveCoverIfAny(id, coverUri)
+                    _state.value = ScanUiState.Saved(id)
+                }
                 .onFailure { e ->
                     Log.w(TAG, "本の登録に失敗しました", e)
                     _state.value = ScanUiState.Failed("本を登録できませんでした。もう一度お試しください。")
@@ -182,6 +190,7 @@ class ScanViewModel(
         publisher: String,
         isbn13: String?,
         status: ReadingStatus,
+        coverUri: Uri? = null,
     ) {
         if (title.isBlank()) {
             _state.value = ScanUiState.Failed("タイトルを入力してください。")
@@ -201,7 +210,10 @@ class ScanViewModel(
                     status = status,
                 )
             }
-                .onSuccess { id -> _state.value = ScanUiState.Saved(id) }
+                .onSuccess { id ->
+                    saveCoverIfAny(id, coverUri)
+                    _state.value = ScanUiState.Saved(id)
+                }
                 .onFailure { e ->
                     Log.w(TAG, "本の登録に失敗しました", e)
                     _state.value = ScanUiState.Failed("本を登録できませんでした。もう一度お試しください。")
@@ -211,6 +223,20 @@ class ScanViewModel(
 
     fun reset() {
         _state.value = ScanUiState.Idle
+    }
+
+    /**
+     * 撮影した表紙があれば端末内へコピーして紐づける。
+     * 失敗しても本自体の登録は既に成功しているので、ログに残すだけで登録処理は継続する。
+     */
+    private suspend fun saveCoverIfAny(bookId: String, coverUri: Uri?) {
+        val uri = coverUri ?: return
+        val path = withContext(Dispatchers.IO) { coverImages.save(bookId, uri) }
+        if (path != null) {
+            books.updateLocalCoverPath(bookId, path)
+        } else {
+            Log.w(TAG, "撮影した表紙の保存に失敗しました")
+        }
     }
 }
 

@@ -1,5 +1,7 @@
 package jp.yomumemo.app.ui.book
 
+import android.net.Uri
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -43,6 +45,7 @@ import jp.yomumemo.app.data.db.entity.BookEntity
 import jp.yomumemo.app.data.db.entity.ReadingStatus
 import jp.yomumemo.app.ui.common.BookCover
 import jp.yomumemo.app.ui.common.NoteCard
+import jp.yomumemo.app.ui.common.rememberDocumentScannerLauncher
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,7 +105,13 @@ fun BookDetailScreen(
             contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 96.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item { BookHeader(book) }
+            item {
+                BookHeader(
+                    book = book,
+                    onSetCover = viewModel::setCover,
+                    onRemoveCover = viewModel::removeCover,
+                )
+            }
             item {
                 StatusSelector(
                     current = book.status,
@@ -156,13 +165,35 @@ fun BookDetailScreen(
 }
 
 @Composable
-private fun BookHeader(book: BookEntity) {
+private fun BookHeader(
+    book: BookEntity,
+    onSetCover: (Uri) -> Unit,
+    onRemoveCover: () -> Unit,
+) {
+    val scanCover = rememberDocumentScannerLauncher(onScanned = onSetCover)
+
     Row {
-        BookCover(
-            title = book.title,
-            coverUrl = book.coverUrl,
-            modifier = Modifier.width(104.dp).aspectRatio(0.68f),
-        )
+        Column {
+            BookCover(
+                title = book.title,
+                coverUrl = book.displayCoverUrl,
+                modifier = Modifier
+                    .width(104.dp)
+                    .aspectRatio(0.68f)
+                    .clickable(onClick = scanCover),
+            )
+            TextButton(onClick = scanCover, contentPadding = PaddingValues(0.dp)) {
+                Text(
+                    if (book.localCoverPath != null) "撮り直す" else "表紙を撮影",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
+            if (book.localCoverPath != null) {
+                TextButton(onClick = onRemoveCover, contentPadding = PaddingValues(0.dp)) {
+                    Text("元の表紙に戻す", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
         Spacer(Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(book.title, style = MaterialTheme.typography.titleMedium)

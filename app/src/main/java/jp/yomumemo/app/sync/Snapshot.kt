@@ -25,6 +25,10 @@ data class Snapshot(
     }
 }
 
+/**
+ * [BookEntity.localCoverPath] はここに含めない。端末内の自分専用領域を指すパスで、
+ * 他端末に持って行っても存在しないファイルを指すだけになるため。
+ */
 @Serializable
 data class BookSnapshot(
     val id: String,

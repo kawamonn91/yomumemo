@@ -23,6 +23,7 @@ playServicesAuth = "22.0.0"
 credentials = "1.6.0"
 googleid = "1.2.0"
 camerax = "1.6.2"
+mlkitDocumentScanner = "16.0.0"
 
 junit = "4.13.2"
 androidxTestJunit = "1.3.0"
@@ -69,6 +70,9 @@ billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", versi
 # 引用文の読み取り(QuoteOcrScreen)と同じ「自前のCameraX + オンデバイスML Kit」方式に統一した。
 barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "barcodeScanning" }
 mlkit-text-recognition-japanese = { group = "com.google.android.gms", name = "play-services-mlkit-text-recognition-japanese", version.ref = "mlkitTextJa" }
+# 表紙を自分で撮影するときに使う。Googleドライブの書類スキャン機能と同じ技術で、
+# 端末側で辺を自動検出してトリミング・傾き補正までしてくれる(自前でOpenCV等を書かない)。
+mlkit-document-scanner = { group = "com.google.android.gms", name = "play-services-mlkit-document-scanner", version.ref = "mlkitDocumentScanner" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 androidx-credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }

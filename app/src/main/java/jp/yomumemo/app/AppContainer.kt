@@ -3,6 +3,7 @@ package jp.yomumemo.app
 import android.content.Context
 import jp.yomumemo.app.billing.BillingManager
 import jp.yomumemo.app.billing.EntitlementRepository
+import jp.yomumemo.app.data.CoverImageStore
 import jp.yomumemo.app.data.db.YomuMemoDatabase
 import jp.yomumemo.app.data.prefs.SettingsStore
 import jp.yomumemo.app.data.remote.AndroidAppIdentity
@@ -38,6 +39,9 @@ class AppContainer(context: Context) {
     val settings: SettingsStore by lazy { SettingsStore(appContext) }
 
     val bookRepository: BookRepository by lazy { BookRepository(database.bookDao()) }
+
+    /** 自分で撮影した表紙画像の保存先。 */
+    val coverImageStore: CoverImageStore by lazy { CoverImageStore(appContext) }
 
     val noteRepository: NoteRepository by lazy { NoteRepository(database.noteDao()) }
 

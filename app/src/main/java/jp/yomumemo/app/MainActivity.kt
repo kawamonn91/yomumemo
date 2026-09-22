@@ -135,7 +135,7 @@ private fun YomuMemoNavHost() {
             val vm: ScanViewModel = viewModel(
                 factory = viewModelFactory {
                     initializer {
-                        ScanViewModel(container.bookLookup, bookRepository, container.entitlements)
+                        ScanViewModel(container.bookLookup, bookRepository, container.entitlements, container.coverImageStore)
                     }
                 },
             )
@@ -194,7 +194,7 @@ private fun YomuMemoNavHost() {
             val vm: BookDetailViewModel = viewModel(
                 key = "book-$bookId",
                 factory = viewModelFactory {
-                    initializer { BookDetailViewModel(bookId, bookRepository, noteRepository) }
+                    initializer { BookDetailViewModel(bookId, bookRepository, noteRepository, container.coverImageStore) }
                 },
             )
             BookDetailScreen(

@@ -144,7 +144,7 @@ private fun BookGridItem(book: BookEntity, onClick: () -> Unit) {
     Column(modifier = Modifier.clickable(onClick = onClick)) {
         BookCover(
             title = book.title,
-            coverUrl = book.coverUrl,
+            coverUrl = book.displayCoverUrl,
             modifier = Modifier
                 .fillMaxWidth()
                 // 書籍の一般的な判型に近い比率

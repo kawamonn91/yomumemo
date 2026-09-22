@@ -129,6 +129,12 @@ class BookRepository(
         dao.upsert(book.copy(rating = rating?.coerceIn(1, 5), updatedAt = now()))
     }
 
+    /** 自分で撮影した表紙のパスを設定する。null を渡すと解除して書誌側の表紙に戻す。 */
+    suspend fun updateLocalCoverPath(id: String, path: String?) {
+        val book = dao.findById(id) ?: return
+        dao.upsert(book.copy(localCoverPath = path, updatedAt = now()))
+    }
+
     /** 論理削除。他端末へ削除を伝播させるため物理削除はしない。 */
     suspend fun delete(id: String) = dao.softDelete(id, now())
 }

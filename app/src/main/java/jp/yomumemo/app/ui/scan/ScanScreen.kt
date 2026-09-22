@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import android.net.Uri
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -46,6 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jp.yomumemo.app.data.db.entity.ReadingStatus
 import jp.yomumemo.app.domain.BookMetadata
 import jp.yomumemo.app.ui.common.BookCover
+import jp.yomumemo.app.ui.common.rememberDocumentScannerLauncher
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -242,17 +244,19 @@ private fun Message(title: String, body: String, onRetry: () -> Unit, onTypeIsbn
 private fun ConfirmBook(
     metadata: BookMetadata,
     alreadyInShelf: Boolean,
-    onSave: (BookMetadata, ReadingStatus) -> Unit,
+    onSave: (BookMetadata, ReadingStatus, Uri?) -> Unit,
     onOpenExisting: () -> Unit,
     onRescan: () -> Unit,
 ) {
     var status by rememberSaveable { mutableStateOf(ReadingStatus.WANT) }
+    var capturedCover by remember { mutableStateOf<Uri?>(null) }
+    val scanCover = rememberDocumentScannerLauncher(onScanned = { capturedCover = it })
 
     Column {
         Row {
             BookCover(
                 title = metadata.title,
-                coverUrl = metadata.coverUrl,
+                coverUrl = capturedCover?.toString() ?: metadata.coverUrl,
                 modifier = Modifier.width(96.dp).aspectRatio(0.68f),
             )
             Spacer(Modifier.width(16.dp))
@@ -281,6 +285,19 @@ private fun ConfirmBook(
                         )
                     }
             }
+        }
+
+        Spacer(Modifier.height(8.dp))
+        TextButton(onClick = scanCover) {
+            Text(
+                if (capturedCover != null) {
+                    "表紙を撮り直す"
+                } else if (metadata.coverUrl.isNullOrBlank()) {
+                    "表紙が見つかりません。自分で撮影する"
+                } else {
+                    "この表紙と違う場合は自分で撮影する"
+                },
+            )
         }
 
         if (alreadyInShelf) {
@@ -313,7 +330,7 @@ private fun ConfirmBook(
 
         Spacer(Modifier.height(24.dp))
         Button(
-            onClick = { onSave(metadata, status) },
+            onClick = { onSave(metadata, status, capturedCover) },
             modifier = Modifier.fillMaxWidth(),
         ) { Text("本棚に追加") }
         Spacer(Modifier.height(8.dp))
@@ -329,13 +346,15 @@ private fun ManualEntry(
     isbn13: String?,
     headline: String,
     description: String,
-    onSave: (String, String, String, String?, ReadingStatus) -> Unit,
+    onSave: (String, String, String, String?, ReadingStatus, Uri?) -> Unit,
     onRescan: () -> Unit,
 ) {
     var title by rememberSaveable { mutableStateOf("") }
     var authors by rememberSaveable { mutableStateOf("") }
     var publisher by rememberSaveable { mutableStateOf("") }
     var status by rememberSaveable { mutableStateOf(ReadingStatus.WANT) }
+    var capturedCover by remember { mutableStateOf<Uri?>(null) }
+    val scanCover = rememberDocumentScannerLauncher(onScanned = { capturedCover = it })
 
     Column {
         Text(headline, style = MaterialTheme.typography.titleLarge)
@@ -350,7 +369,20 @@ private fun ManualEntry(
             Text("ISBN: $it", style = MaterialTheme.typography.bodySmall)
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(16.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            BookCover(
+                title = title.ifBlank { "?" },
+                coverUrl = capturedCover?.toString(),
+                modifier = Modifier.width(72.dp).aspectRatio(0.68f),
+            )
+            Spacer(Modifier.width(12.dp))
+            TextButton(onClick = scanCover) {
+                Text(if (capturedCover != null) "表紙を撮り直す" else "表紙を撮影する(任意)")
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
         OutlinedTextField(
             value = title,
             onValueChange = { title = it },
@@ -391,7 +423,7 @@ private fun ManualEntry(
 
         Spacer(Modifier.height(24.dp))
         Button(
-            onClick = { onSave(title, authors, publisher, isbn13, status) },
+            onClick = { onSave(title, authors, publisher, isbn13, status, capturedCover) },
             enabled = title.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
         ) { Text("本棚に追加") }

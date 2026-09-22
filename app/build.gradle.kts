@@ -36,8 +36,8 @@ android {
         applicationId = "jp.yomumemo.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.0.6"
+        versionCode = 8
+        versionName = "1.0.7"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "GOOGLE_BOOKS_API_KEY", "\"" + googleBooksApiKey + "\"")
@@ -133,6 +133,9 @@ dependencies {
 
     // バーコード読み取り: オンデバイスのML Kit(引用文の読み取りと同じCameraX方式)
     implementation(libs.barcode.scanning)
+
+    // 表紙の自分撮り登録: Googleドライブの書類スキャンと同じ辺検出・トリミング機能
+    implementation(libs.mlkit.document.scanner)
 
     // 課金 (買い切りのプレミアム解除)
     implementation(libs.billing.ktx)
