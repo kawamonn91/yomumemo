@@ -19,6 +19,10 @@ interface BookDao {
     @Query("SELECT * FROM books WHERE deletedAt IS NULL AND status = :status ORDER BY addedAt DESC")
     fun observeByStatus(status: ReadingStatus): Flow<List<BookEntity>>
 
+    /** [folderId] が null なら「フォルダ未設定」の本を返す。 */
+    @Query("SELECT * FROM books WHERE deletedAt IS NULL AND folderId IS :folderId ORDER BY addedAt DESC")
+    fun observeByFolder(folderId: String?): Flow<List<BookEntity>>
+
     @Query("SELECT * FROM books WHERE id = :id AND deletedAt IS NULL")
     fun observeById(id: String): Flow<BookEntity?>
 

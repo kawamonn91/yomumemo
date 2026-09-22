@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -39,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jp.yomumemo.app.data.db.entity.BookEntity
+import jp.yomumemo.app.data.db.entity.FolderEntity
 import jp.yomumemo.app.data.db.entity.ReadingStatus
 import jp.yomumemo.app.ui.common.BookCover
 
@@ -50,6 +52,7 @@ fun ShelfScreen(
     onScan: () -> Unit,
     onSearch: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenFolders: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -58,6 +61,9 @@ fun ShelfScreen(
             TopAppBar(
                 title = { Text("本棚") },
                 actions = {
+                    IconButton(onClick = onOpenFolders) {
+                        Icon(Icons.Default.Folder, contentDescription = "フォルダ")
+                    }
                     IconButton(onClick = onSearch) {
                         Icon(Icons.Default.Search, contentDescription = "メモを検索")
                     }
@@ -77,9 +83,17 @@ fun ShelfScreen(
     ) { inner ->
         Column(modifier = Modifier.padding(inner).fillMaxSize()) {
             StatusFilterRow(
-                selected = state.filter,
+                selected = state.statusFilter,
                 onSelect = viewModel::setFilter,
             )
+            if (state.folders.isNotEmpty()) {
+                Spacer(Modifier.height(4.dp))
+                FolderFilterRow(
+                    folders = state.folders,
+                    selected = state.folderFilter,
+                    onSelect = viewModel::setFolderFilter,
+                )
+            }
 
             when {
                 state.isLoading -> Box_CenteredProgress()
@@ -136,6 +150,40 @@ private fun StatusFilterRow(
                 colors = FilterChipDefaults.filterChipColors(),
             )
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FolderFilterRow(
+    folders: List<FolderEntity>,
+    selected: FolderFilter,
+    onSelect: (FolderFilter) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        FilterChip(
+            selected = selected == FolderFilter.All,
+            onClick = { onSelect(FolderFilter.All) },
+            label = { Text("すべてのフォルダ") },
+        )
+        folders.forEach { folder ->
+            FilterChip(
+                selected = selected == FolderFilter.Specific(folder.id),
+                onClick = { onSelect(FolderFilter.Specific(folder.id)) },
+                label = { Text(folder.name) },
+            )
+        }
+        FilterChip(
+            selected = selected == FolderFilter.Unassigned,
+            onClick = { onSelect(FolderFilter.Unassigned) },
+            label = { Text("未分類") },
+        )
     }
 }
 

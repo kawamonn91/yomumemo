@@ -20,6 +20,9 @@ class FakeBookDao : BookDao {
     override fun observeByStatus(status: ReadingStatus): Flow<List<BookEntity>> =
         rows.map { m -> m.values.filter { it.deletedAt == null && it.status == status } }
 
+    override fun observeByFolder(folderId: String?): Flow<List<BookEntity>> =
+        rows.map { m -> m.values.filter { it.deletedAt == null && it.folderId == folderId } }
+
     override fun observeById(id: String): Flow<BookEntity?> =
         rows.map { m -> m[id]?.takeIf { it.deletedAt == null } }
 

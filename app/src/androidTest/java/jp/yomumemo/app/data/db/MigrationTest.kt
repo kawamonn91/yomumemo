@@ -46,6 +46,34 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun v2からv3へ_既存の本のデータを保ったままfoldersテーブルとfolderId列が追加される() {
+        helper.createDatabase(TEST_DB, 2).apply {
+            execSQL(
+                "INSERT INTO books (id, isbn13, title, subtitle, authors, publisher, publishedDate, " +
+                    "coverUrl, localCoverPath, pageCount, description, status, rating, currentPage, addedAt, " +
+                    "startedAt, finishedAt, updatedAt, deletedAt) VALUES ('b1', '9784873115658', " +
+                    "'リーダブルコード', NULL, '[\"著者A\"]', NULL, NULL, 'https://example.com/cover.jpg', " +
+                    "NULL, NULL, NULL, 'READING', NULL, 0, 1, NULL, NULL, 1, NULL)",
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(TEST_DB, 3, true, YomuMemoDatabase.MIGRATION_2_3)
+
+        db.query("SELECT title, folderId FROM books WHERE id = 'b1'").use { cursor ->
+            assertEquals(1, cursor.count)
+            cursor.moveToFirst()
+            assertEquals("リーダブルコード", cursor.getString(cursor.getColumnIndexOrThrow("title")))
+            assertEquals(true, cursor.isNull(cursor.getColumnIndexOrThrow("folderId")))
+        }
+
+        db.query("SELECT COUNT(*) FROM folders").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(0, cursor.getInt(0))
+        }
+    }
+
     private companion object {
         const val TEST_DB = "migration-test"
     }

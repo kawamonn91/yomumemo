@@ -19,6 +19,8 @@ import androidx.navigation.navArgument
 import jp.yomumemo.app.data.repo.NoteRepository
 import jp.yomumemo.app.ui.book.BookDetailScreen
 import jp.yomumemo.app.ui.book.BookDetailViewModel
+import jp.yomumemo.app.ui.folder.FolderManagementScreen
+import jp.yomumemo.app.ui.folder.FolderManagementViewModel
 import jp.yomumemo.app.ui.note.NoteEditorScreen
 import jp.yomumemo.app.ocr.QuoteOcrScreen
 import jp.yomumemo.app.ui.note.NoteEditorViewModel
@@ -57,6 +59,7 @@ private object Routes {
     const val SETTINGS = "settings"
     const val STATS = "stats"
     const val OCR = "ocr"
+    const val FOLDERS = "folders"
 
     /** OCR の結果を呼び出し元へ渡すときの鍵。 */
     const val OCR_RESULT = "ocr_result"
@@ -77,13 +80,14 @@ private fun YomuMemoNavHost() {
     // リポジトリはコンテナが保持する同じ実体を画面間で共有する
     val bookRepository = container.bookRepository
     val noteRepository = container.noteRepository
+    val folderRepository = container.folderRepository
 
     NavHost(navController = navController, startDestination = Routes.SHELF) {
 
         composable(Routes.SHELF) {
             val vm: ShelfViewModel = viewModel(
                 factory = viewModelFactory {
-                    initializer { ShelfViewModel(bookRepository) }
+                    initializer { ShelfViewModel(bookRepository, folderRepository) }
                 },
             )
             ShelfScreen(
@@ -92,6 +96,19 @@ private fun YomuMemoNavHost() {
                 onScan = { navController.navigate(Routes.SCAN) },
                 onSearch = { navController.navigate(Routes.SEARCH) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                onOpenFolders = { navController.navigate(Routes.FOLDERS) },
+            )
+        }
+
+        composable(Routes.FOLDERS) {
+            val vm: FolderManagementViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer { FolderManagementViewModel(folderRepository) }
+                },
+            )
+            FolderManagementScreen(
+                viewModel = vm,
+                onBack = { navController.popBackStack() },
             )
         }
 
@@ -104,6 +121,7 @@ private fun YomuMemoNavHost() {
                             noteRepository,
                             container.entitlements,
                             container.snapshots,
+                            container.driveBackupApi,
                         )
                     }
                 },
@@ -194,7 +212,9 @@ private fun YomuMemoNavHost() {
             val vm: BookDetailViewModel = viewModel(
                 key = "book-$bookId",
                 factory = viewModelFactory {
-                    initializer { BookDetailViewModel(bookId, bookRepository, noteRepository, container.coverImageStore) }
+                    initializer {
+                        BookDetailViewModel(bookId, bookRepository, noteRepository, container.coverImageStore, folderRepository)
+                    }
                 },
             )
             BookDetailScreen(

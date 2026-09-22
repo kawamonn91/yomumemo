@@ -2,6 +2,7 @@ package jp.yomumemo.app.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import jp.yomumemo.app.backup.DriveBackupApi
 import jp.yomumemo.app.billing.EntitlementRepository
 import jp.yomumemo.app.data.repo.BookRepository
 import jp.yomumemo.app.data.repo.NoteRepository
@@ -30,6 +31,7 @@ class SettingsViewModel(
     private val notes: NoteRepository,
     private val entitlements: EntitlementRepository,
     private val snapshots: SnapshotRepository,
+    private val drive: DriveBackupApi,
 ) : ViewModel() {
 
     private val message = MutableStateFlow<String?>(null)
@@ -139,4 +141,40 @@ class SettingsViewModel(
             "バックアップを保存できませんでした。"
         }
     }
+
+    // --- Googleドライブへの自動バックアップ(SAFでの手動保存とは別経路) ---
+
+    fun backupToDrive(accessToken: String) {
+        viewModelScope.launch {
+            exporting.value = true
+            runCatching {
+                val content = snapshots.encode(snapshots.capture())
+                val existingId = drive.findBackupFileId(accessToken)
+                drive.save(accessToken, existingId, content)
+            }
+                .onSuccess { message.value = "Googleドライブにバックアップしました。" }
+                .onFailure { message.value = it.message ?: "バックアップに失敗しました。" }
+            exporting.value = false
+        }
+    }
+
+    fun restoreFromDrive(accessToken: String) {
+        viewModelScope.launch {
+            exporting.value = true
+            runCatching {
+                val fileId = drive.findBackupFileId(accessToken) ?: throw NoDriveBackupException()
+                val content = drive.read(accessToken, fileId)
+                val snapshot = snapshots.decode(content) ?: throw IllegalStateException("バックアップとして読み取れないファイルでした。")
+                snapshots.merge(snapshot)
+            }
+                .onSuccess { result ->
+                    message.value = "Googleドライブから復元しました。本 " + result.booksUpdatedLocally +
+                        " 件、メモ " + result.notesUpdatedLocally + " 件を取り込みました。"
+                }
+                .onFailure { message.value = it.message ?: "復元に失敗しました。" }
+            exporting.value = false
+        }
+    }
+
+    class NoDriveBackupException : Exception("Googleドライブにバックアップが見つかりませんでした。先に「今すぐバックアップ」を行ってください。")
 }

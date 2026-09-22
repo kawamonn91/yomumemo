@@ -5,9 +5,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import jp.yomumemo.app.data.CoverImageStore
 import jp.yomumemo.app.data.db.entity.BookEntity
+import jp.yomumemo.app.data.db.entity.FolderEntity
 import jp.yomumemo.app.data.db.entity.NoteEntity
 import jp.yomumemo.app.data.db.entity.ReadingStatus
 import jp.yomumemo.app.data.repo.BookRepository
+import jp.yomumemo.app.data.repo.FolderRepository
 import jp.yomumemo.app.data.repo.NoteRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,6 +22,7 @@ import kotlinx.coroutines.withContext
 data class BookDetailUiState(
     val book: BookEntity? = null,
     val notes: List<NoteEntity> = emptyList(),
+    val folders: List<FolderEntity> = emptyList(),
     val isLoading: Boolean = true,
 )
 
@@ -28,11 +31,12 @@ class BookDetailViewModel(
     private val books: BookRepository,
     private val notes: NoteRepository,
     private val coverImages: CoverImageStore,
+    private val folders: FolderRepository,
 ) : ViewModel() {
 
     val uiState: StateFlow<BookDetailUiState> =
-        combine(books.observeById(bookId), notes.observeForBook(bookId)) { book, noteList ->
-            BookDetailUiState(book = book, notes = noteList, isLoading = false)
+        combine(books.observeById(bookId), notes.observeForBook(bookId), folders.observeAll()) { book, noteList, folderList ->
+            BookDetailUiState(book = book, notes = noteList, folders = folderList, isLoading = false)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -74,6 +78,11 @@ class BookDetailViewModel(
             books.updateLocalCoverPath(bookId, null)
             previousPath?.let { withContext(Dispatchers.IO) { coverImages.delete(it) } }
         }
+    }
+
+    /** 本をフォルダへ入れる/移す。null で未分類に戻す。 */
+    fun setFolder(folderId: String?) {
+        viewModelScope.launch { books.updateFolder(bookId, folderId) }
     }
 
     fun deleteBook(onDeleted: () -> Unit) {

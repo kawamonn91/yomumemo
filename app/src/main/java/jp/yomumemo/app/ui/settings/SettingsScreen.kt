@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import jp.yomumemo.app.backup.rememberDriveAuthorizationLauncher
 import jp.yomumemo.app.export.ExportFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -87,6 +88,15 @@ fun SettingsScreen(
             viewModel.restoreFrom(content)
         }
     }
+
+    val authorizeForDriveBackup = rememberDriveAuthorizationLauncher(
+        onAuthorized = viewModel::backupToDrive,
+        onFailed = { },
+    )
+    val authorizeForDriveRestore = rememberDriveAuthorizationLauncher(
+        onAuthorized = viewModel::restoreFromDrive,
+        onFailed = { },
+    )
 
     Scaffold(
         topBar = {
@@ -195,6 +205,24 @@ fun SettingsScreen(
                 onClick = { openBackup.launch(arrayOf("application/json")) },
                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
             ) { Text("バックアップから復元") }
+
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "または、自分のGoogleドライブに自動でバックアップ・復元できます。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = authorizeForDriveBackup,
+                enabled = !state.isExporting,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            ) { Text("Googleドライブに自動バックアップ") }
+            OutlinedButton(
+                onClick = authorizeForDriveRestore,
+                enabled = !state.isExporting,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            ) { Text("Googleドライブから復元") }
 
             Spacer(Modifier.height(32.dp))
             HorizontalDivider()

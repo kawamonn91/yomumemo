@@ -1,6 +1,7 @@
 package jp.yomumemo.app
 
 import android.content.Context
+import jp.yomumemo.app.backup.DriveBackupApi
 import jp.yomumemo.app.billing.BillingManager
 import jp.yomumemo.app.billing.EntitlementRepository
 import jp.yomumemo.app.data.CoverImageStore
@@ -13,6 +14,7 @@ import jp.yomumemo.app.data.remote.HttpFetcher
 import jp.yomumemo.app.data.remote.OkHttpFetcher
 import jp.yomumemo.app.data.remote.OpenBdApi
 import jp.yomumemo.app.data.repo.BookRepository
+import jp.yomumemo.app.data.repo.FolderRepository
 import jp.yomumemo.app.data.repo.NoteRepository
 import jp.yomumemo.app.sync.SnapshotRepository
 import kotlinx.coroutines.CoroutineScope
@@ -40,6 +42,8 @@ class AppContainer(context: Context) {
 
     val bookRepository: BookRepository by lazy { BookRepository(database.bookDao()) }
 
+    val folderRepository: FolderRepository by lazy { FolderRepository(database.folderDao()) }
+
     /** 自分で撮影した表紙画像の保存先。 */
     val coverImageStore: CoverImageStore by lazy { CoverImageStore(appContext) }
 
@@ -50,6 +54,9 @@ class AppContainer(context: Context) {
     val snapshots: SnapshotRepository by lazy {
         SnapshotRepository(database.bookDao(), database.noteDao())
     }
+
+    /** Googleドライブへの自動バックアップ用。中身(JSON)はSnapshotRepositoryと共通。 */
+    val driveBackupApi: DriveBackupApi by lazy { DriveBackupApi(okHttpClient) }
 
     val billing: BillingManager by lazy {
         BillingManager(

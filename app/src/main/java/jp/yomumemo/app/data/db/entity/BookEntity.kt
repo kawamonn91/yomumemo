@@ -1,6 +1,7 @@
 package jp.yomumemo.app.data.db.entity
 
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
@@ -16,10 +17,20 @@ enum class ReadingStatus { WANT, READING, PAUSED, DONE }
  */
 @Entity(
     tableName = "books",
+    foreignKeys = [
+        ForeignKey(
+            entity = FolderEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["folderId"],
+            // フォルダを削除しても本は消さない。フォルダ無し(null)に戻すだけにする。
+            onDelete = ForeignKey.SET_NULL,
+        ),
+    ],
     indices = [
         Index(value = ["isbn13"], unique = true),
         Index(value = ["status"]),
         Index(value = ["updatedAt"]),
+        Index(value = ["folderId"]),
     ],
 )
 data class BookEntity(
@@ -32,6 +43,8 @@ data class BookEntity(
     val publisher: String? = null,
     val publishedDate: String? = null,
     val coverUrl: String? = null,
+    /** 自分で作ったフォルダに入れている場合のフォルダID。未分類なら null。 */
+    val folderId: String? = null,
     /**
      * 自分で撮影した表紙画像の端末内絶対パス。書誌データに表紙が無かった/合わなかった
      * ときのために撮り直せるようにしたもので、あれば [coverUrl] より優先して表示する。

@@ -192,6 +192,26 @@ class BookRepositoryTest {
     }
 
     @Test
+    fun `本をフォルダに入れられる`() = runTest {
+        val id = repo.addFromMetadata(sample)
+        clock = 2_000L
+        repo.updateFolder(id, "folder-1")
+
+        val book = checkNotNull(dao.findById(id))
+        assertEquals("folder-1", book.folderId)
+        assertEquals(2_000L, book.updatedAt)
+    }
+
+    @Test
+    fun `フォルダに null を渡すと未分類に戻る`() = runTest {
+        val id = repo.addFromMetadata(sample)
+        repo.updateFolder(id, "folder-1")
+        repo.updateFolder(id, null)
+
+        assertNull(dao.findById(id)?.folderId)
+    }
+
+    @Test
     fun `登録数は論理削除を除いて数える`() = runTest {
         val a = repo.addFromMetadata(sample)
         repo.addFromMetadata(sample.copy(isbn13 = "9784101010014", title = "吾輩は猫である"))

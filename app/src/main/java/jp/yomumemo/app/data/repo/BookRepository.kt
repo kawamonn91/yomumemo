@@ -135,6 +135,12 @@ class BookRepository(
         dao.upsert(book.copy(localCoverPath = path, updatedAt = now()))
     }
 
+    /** 本をフォルダに入れる/移す。null を渡すと未分類に戻す。 */
+    suspend fun updateFolder(id: String, folderId: String?) {
+        val book = dao.findById(id) ?: return
+        dao.upsert(book.copy(folderId = folderId, updatedAt = now()))
+    }
+
     /** 論理削除。他端末へ削除を伝播させるため物理削除はしない。 */
     suspend fun delete(id: String) = dao.softDelete(id, now())
 }

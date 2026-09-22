@@ -3,6 +3,7 @@ package jp.yomumemo.app.ui.book
 import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,6 +21,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
@@ -42,6 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jp.yomumemo.app.data.db.entity.BookEntity
+import jp.yomumemo.app.data.db.entity.FolderEntity
 import jp.yomumemo.app.data.db.entity.ReadingStatus
 import jp.yomumemo.app.ui.common.BookCover
 import jp.yomumemo.app.ui.common.NoteCard
@@ -116,6 +120,13 @@ fun BookDetailScreen(
                 StatusSelector(
                     current = book.status,
                     onSelect = viewModel::updateStatus,
+                )
+            }
+            item {
+                FolderSelector(
+                    folders = state.folders,
+                    selectedFolderId = book.folderId,
+                    onSelect = viewModel::setFolder,
                 )
             }
             item {
@@ -238,6 +249,38 @@ private fun StatusSelector(current: ReadingStatus, onSelect: (ReadingStatus) -> 
                 onClick = { onSelect(value) },
                 label = { Text(label) },
             )
+        }
+    }
+}
+
+@Composable
+private fun FolderSelector(
+    folders: List<FolderEntity>,
+    selectedFolderId: String?,
+    onSelect: (String?) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val currentName = folders.find { it.id == selectedFolderId }?.name ?: "未分類"
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text("フォルダ", style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.width(8.dp))
+        Box {
+            TextButton(onClick = { expanded = true }) {
+                Text(currentName)
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                DropdownMenuItem(
+                    text = { Text("未分類") },
+                    onClick = { onSelect(null); expanded = false },
+                )
+                folders.forEach { folder ->
+                    DropdownMenuItem(
+                        text = { Text(folder.name) },
+                        onClick = { onSelect(folder.id); expanded = false },
+                    )
+                }
+            }
         }
     }
 }
