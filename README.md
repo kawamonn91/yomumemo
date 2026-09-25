@@ -7,6 +7,11 @@ GitHub Pages で公開している。
 
 - `index.html` … ホームページ
 - `privacy-policy.html` … プライバシーポリシー
+- `diary-privacy-policy.html` … ひとこと日記のプライバシーポリシー
+- `drive-record-privacy-policy.html` … ドライブ記録のプライバシーポリシー
+- `run-tracker-privacy-policy.html` … ランニング記録のプライバシーポリシー
+- `trip-shiori-privacy-policy.html` … 旅のしおりのプライバシーポリシー
+- `travel-wishlist-privacy-policy.html` … 行きたい旅メモのプライバシーポリシー
 
 ## なぜ別リポジトリなのか
 
