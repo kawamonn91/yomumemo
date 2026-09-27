@@ -12,6 +12,7 @@ GitHub Pages で公開している。
 - `run-tracker-privacy-policy.html` … ランニング記録のプライバシーポリシー
 - `trip-shiori-privacy-policy.html` … 旅のしおりのプライバシーポリシー
 - `travel-wishlist-privacy-policy.html` … 行きたい旅メモのプライバシーポリシー
+- `idea-memo-privacy-policy.html` … アプリのアイデア帳のプライバシーポリシー
 
 ## なぜ別リポジトリなのか
 
