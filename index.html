@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ヨムメモ — 読書メモとバーコード登録</title>
+<meta name="description" content="バーコードで本を登録し、気づいた一文とそのとき思ったことを、その場で書き留める Android アプリ。">
+<link rel="icon" href="icon.png">
+<style>
+  :root {
+    color-scheme: light dark;
+    --ink: #3b322c;
+    --sub: #7a6f63;
+    --bg: #f6f1e8;
+    --surface: #fffbf4;
+    --clay: #8b5e3c;
+    --line: rgba(139, 94, 60, .22);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #eae1d8; --sub: #a99e92; --bg: #16130f;
+      --surface: #1e1a16; --line: rgba(233, 222, 208, .16);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+    line-height: 1.9; color: var(--ink); background: var(--bg);
+  }
+  .wrap { max-width: 46rem; margin: 0 auto; padding: 0 1.25rem; }
+  header { padding: 4rem 0 3rem; text-align: center; }
+  header img.icon {
+    width: 88px; height: 88px; border-radius: 20px; display: block; margin: 0 auto 1.25rem;
+  }
+  h1 { font-size: 2rem; margin: 0 0 .5rem; letter-spacing: .02em; }
+  .tagline { color: var(--sub); margin: 0; font-size: 1.05rem; }
+  h2 {
+    font-size: 1.2rem; margin: 3rem 0 .75rem;
+    border-bottom: 1px solid var(--line); padding-bottom: .4rem;
+  }
+  section p { margin: .6rem 0; }
+  .shots {
+    display: flex; gap: 1rem; overflow-x: auto; padding: .5rem 0 1rem; margin: 1.5rem 0;
+  }
+  .shots img {
+    width: 200px; flex: 0 0 auto; border-radius: 12px;
+    border: 1px solid var(--line); background: var(--surface);
+  }
+  ul { padding-left: 1.2rem; }
+  li { margin: .35rem 0; }
+  .note {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 10px; padding: 1rem 1.2rem; margin: 1.5rem 0;
+  }
+  footer {
+    margin-top: 4rem; padding: 2rem 0 3rem;
+    border-top: 1px solid var(--line); color: var(--sub); font-size: .92rem;
+  }
+  footer a { color: var(--clay); }
+  @media (prefers-color-scheme: dark) { footer a { color: #e5be96; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <img class="icon" src="icon.png" alt="ヨムメモ">
+    <h1>ヨムメモ</h1>
+    <p class="tagline">バーコードで本を登録。気づいたその場で書き留める。</p>
+  </header>
+
+  <div class="shots">
+    <img src="screenshots/shelf.png" alt="本棚の画面">
+    <img src="screenshots/book.png" alt="本の詳細とメモ一覧">
+    <img src="screenshots/note.png" alt="メモの編集画面">
+  </div>
+
+  <section>
+    <h2>読んだそばから書き留める</h2>
+    <p>
+      心に残った一文は「引用」に、それを読んで思ったことは「自分の言葉」に。
+      2つを分けて書けるので、あとから読み返したときに、
+      本が言っていたことと自分が考えたことを取り違えません。
+    </p>
+    <p>
+      メモには「引用・感想・疑問・要約」の種別とページ番号を添えられます。
+      あとで探すときの手がかりになります。
+    </p>
+  </section>
+
+  <section>
+    <h2>バーコードで登録</h2>
+    <p>
+      本の裏表紙のバーコードにカメラを向けるだけで、書名・著者・出版社が入ります。
+      カメラの使用許可を求めないので、初回から迷わず使えます。
+    </p>
+    <p>
+      日本の本は上下2段のバーコードが並んでいて、下の段は価格を表す別のコードです。
+      間違えて下の段を読んでしまったときは、どちらを読めばよいか画面で案内します。
+    </p>
+    <p>
+      バーコードが汚れている、カバーで隠れている、電子書籍で現物がない、
+      といったときは ISBN の手入力でも登録できます。
+    </p>
+  </section>
+
+  <section>
+    <h2>メモは端末の中だけに保存されます</h2>
+    <p>
+      アカウント登録は不要です。書いたメモが開発者のサーバーに送られることはありません。
+      広告も表示しませんし、利用状況の解析も行いません。
+    </p>
+    <p>
+      外部と通信するのは、ISBN から書誌情報を取得するときだけです。
+    </p>
+  </section>
+
+  <section>
+    <h2>プレミアム（買い切り）</h2>
+    <p>
+      無料版では本を3冊まで登録できます。メモの数に制限はありません。
+      書き留めること自体を止めてしまっては、このアプリの意味がないためです。
+    </p>
+    <ul>
+      <li>本を無制限に登録</li>
+      <li>引用のカメラ取り込み（ページを撮ると文字を読み取ります。画像は保存も送信もされません）</li>
+      <li>メモの書き出し（Markdown / CSV / Obsidian）</li>
+      <li>読書の統計（読了した冊数、読んだページ数、書き続けている日数）</li>
+      <li>バックアップと復元</li>
+    </ul>
+    <div class="note">
+      一度の購入でずっと使えます。月額課金ではありません。
+    </div>
+  </section>
+
+  <section>
+    <h2>書誌情報について</h2>
+    <p>
+      書誌情報は <a href="https://openbd.jp/">openBD</a> から取得しています。
+      和書の書名・著者・出版社を正確に引けます。
+      表紙画像やページ数は Google Books で補完します。
+    </p>
+  </section>
+
+  <footer>
+    <p><a href="privacy-policy.html">プライバシーポリシー</a></p>
+    <p>ヨムメモ</p>
+  </footer>
+
+</div>
+</body>
+</html>
