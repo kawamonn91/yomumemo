@@ -222,6 +222,7 @@ private fun PermissionNotice(alreadyAsked: Boolean, onRequest: () -> Unit, onBac
 private const val TAG = "QuoteOcr"
 
 /** 撮影した画像から日本語の文字を読み取る。端末内で完結し、画像は送信しない。 */
+@androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
 private fun recognize(image: ImageProxy, onResult: (String) -> Unit) {
     val mediaImage = image.image
     if (mediaImage == null) {

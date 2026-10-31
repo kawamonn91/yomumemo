@@ -43,15 +43,7 @@ class ShelfViewModel(
     // 状態・フォルダの両方で絞り込む必要があるため、全件を取得してから
     // メモリ上でAND条件をかける(個人の蔵書規模ならこれで十分)。
     private val filteredBooks = combine(books.observeAll(), statusFilter, folderFilter) { all, status, folder ->
-        all
-            .filter { status == null || it.status == status }
-            .filter { book ->
-                when (folder) {
-                    FolderFilter.All -> true
-                    FolderFilter.Unassigned -> book.folderId == null
-                    is FolderFilter.Specific -> book.folderId == folder.folderId
-                }
-            }
+        filterBooks(all, status, folder)
     }
 
     val uiState: StateFlow<ShelfUiState> =

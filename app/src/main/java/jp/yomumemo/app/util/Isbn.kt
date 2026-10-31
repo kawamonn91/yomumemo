@@ -44,6 +44,10 @@ object Isbn {
         return isbn10CheckChar(n.take(9)) == last
     }
 
+    /** 有効な ISBN（ISBN-10 または ISBN-13）か。 */
+    fun isValid(raw: String): Boolean =
+        isValidIsbn13(raw) || isValidIsbn10(raw)
+
     /**
      * 入力を ISBN-13 に正規化する。ISBN-10 は 978 プレフィックスを付けて変換する。
      * 書籍の ISBN として解釈できない場合は null。
