@@ -48,4 +48,20 @@ class PersonNameTest {
             PersonName.splitSummaryAuthors("夏目,漱石　森,鴎外"),
         )
     }
+
+    @Test
+    fun `手動入力された著者名を読点やカンマで分割する`() {
+        val input = "夏目漱石、 森鴎外, 芥川龍之介\n太宰治"
+        assertEquals(
+            listOf("夏目漱石", "森鴎外", "芥川龍之介", "太宰治"),
+            PersonName.parseInputAuthors(input),
+        )
+    }
+
+    @Test
+    fun `著者リストを表示用に読点で連結する`() {
+        val authors = listOf("夏目漱石", "森鴎外")
+        assertEquals("夏目漱石、森鴎外", PersonName.joinForDisplay(authors))
+        assertEquals("", PersonName.joinForDisplay(emptyList()))
+    }
 }

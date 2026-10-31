@@ -13,6 +13,7 @@ import jp.yomumemo.app.data.repo.BookRepository
 import jp.yomumemo.app.domain.BookMetadata
 import jp.yomumemo.app.domain.LookupResult
 import jp.yomumemo.app.util.Isbn
+import jp.yomumemo.app.util.PersonName
 import jp.yomumemo.app.util.ScanOutcome
 import jp.yomumemo.app.util.interpretScannedCode
 import kotlinx.coroutines.Dispatchers
@@ -204,7 +205,7 @@ class ScanViewModel(
             runCatching {
                 books.addManual(
                     title = title,
-                    authors = authors.split("、", ",").map(String::trim).filter(String::isNotEmpty),
+                    authors = PersonName.parseInputAuthors(authors),
                     publisher = publisher,
                     isbn13 = isbn13,
                     status = status,

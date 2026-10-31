@@ -105,6 +105,7 @@ fun BarcodeCameraScanner(
     CameraPreviewWithAnalysis(onScanned = onScanned, onFailed = onFailed, onManualEntry = onManualEntry, onCancel = onCancel)
 }
 
+@androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
 @Composable
 private fun CameraPreviewWithAnalysis(
     onScanned: (String) -> Unit,

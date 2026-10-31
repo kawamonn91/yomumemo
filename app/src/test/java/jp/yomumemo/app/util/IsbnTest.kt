@@ -71,6 +71,18 @@ class IsbnTest {
         assertEquals(8, Isbn.ean13CheckDigit("978487311565"))
     }
 
+    @Test
+    fun `isValid は ISBN-13 と ISBN-10 の両方を受理する`() {
+        assertTrue(Isbn.isValid(readableCode13))
+        assertTrue(Isbn.isValid(readableCode10))
+        assertFalse(Isbn.isValid("12345"))
+    }
+
+    @Test
+    fun `formatForDisplay は ISBN-13 を先頭3桁で区切る`() {
+        assertEquals("978-4873115658", Isbn.formatForDisplay(readableCode13))
+    }
+
     // --- 日本の書籍バーコードは上下2段。下段(価格コード)を読んでしまう誤操作が多い ---
 
     @Test

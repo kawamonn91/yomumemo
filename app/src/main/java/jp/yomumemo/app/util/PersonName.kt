@@ -48,4 +48,17 @@ object PersonName {
             .filter { it.isNotEmpty() }
             .map(::format)
             .filter { it.isNotEmpty() }
+
+    /**
+     * 手動入力された著者名文字列を分割・正規化する。
+     * 読点（、）、カンマ（,）、改行で区切り、各人名をトリムする。
+     */
+    fun parseInputAuthors(raw: String): List<String> =
+        raw.split("、", ",", "\n", "\r")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+
+    /** 表示用に著者を「、」で連結する。 */
+    fun joinForDisplay(authors: List<String>): String =
+        authors.filter { it.isNotBlank() }.joinToString("、")
 }
