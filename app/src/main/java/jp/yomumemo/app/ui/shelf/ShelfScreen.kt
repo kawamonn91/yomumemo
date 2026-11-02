@@ -43,6 +43,7 @@ import jp.yomumemo.app.data.db.entity.BookEntity
 import jp.yomumemo.app.data.db.entity.FolderEntity
 import jp.yomumemo.app.data.db.entity.ReadingStatus
 import jp.yomumemo.app.ui.common.BookCover
+import jp.yomumemo.app.util.PersonName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -207,7 +208,7 @@ private fun BookGridItem(book: BookEntity, onClick: () -> Unit) {
         )
         if (book.authors.isNotEmpty()) {
             Text(
-                text = book.authors.joinToString("、"),
+                text = PersonName.joinForDisplay(book.authors),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,

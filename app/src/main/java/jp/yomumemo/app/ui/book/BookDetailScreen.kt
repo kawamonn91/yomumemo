@@ -50,6 +50,7 @@ import jp.yomumemo.app.data.db.entity.ReadingStatus
 import jp.yomumemo.app.ui.common.BookCover
 import jp.yomumemo.app.ui.common.NoteCard
 import jp.yomumemo.app.ui.common.rememberDocumentScannerLauncher
+import jp.yomumemo.app.util.PersonName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -218,7 +219,7 @@ private fun BookHeader(
             }
             if (book.authors.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
-                Text(book.authors.joinToString("、"), style = MaterialTheme.typography.bodyMedium)
+                Text(PersonName.joinForDisplay(book.authors), style = MaterialTheme.typography.bodyMedium)
             }
             listOfNotNull(book.publisher, book.publishedDate)
                 .takeIf { it.isNotEmpty() }
