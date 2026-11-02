@@ -48,6 +48,7 @@ import jp.yomumemo.app.data.db.entity.ReadingStatus
 import jp.yomumemo.app.domain.BookMetadata
 import jp.yomumemo.app.ui.common.BookCover
 import jp.yomumemo.app.ui.common.rememberDocumentScannerLauncher
+import jp.yomumemo.app.util.PersonName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -272,7 +273,7 @@ private fun ConfirmBook(
                 }
                 if (metadata.authors.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
-                    Text(metadata.authors.joinToString("、"), style = MaterialTheme.typography.bodyMedium)
+                    Text(PersonName.joinForDisplay(metadata.authors), style = MaterialTheme.typography.bodyMedium)
                 }
                 listOfNotNull(metadata.publisher, metadata.publishedDate)
                     .takeIf { it.isNotEmpty() }

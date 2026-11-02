@@ -4,6 +4,7 @@ import jp.yomumemo.app.data.db.entity.BookEntity
 import jp.yomumemo.app.data.db.entity.NoteEntity
 import jp.yomumemo.app.data.db.entity.NoteType
 import jp.yomumemo.app.data.db.entity.ReadingStatus
+import jp.yomumemo.app.util.PersonName
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -57,7 +58,7 @@ object NoteExporter {
         book.subtitle?.takeIf { it.isNotBlank() }?.let { appendLine("*" + it + "*") }
 
         val meta = buildList {
-            if (book.authors.isNotEmpty()) add(book.authors.joinToString("、"))
+            if (book.authors.isNotEmpty()) add(PersonName.joinForDisplay(book.authors))
             book.publisher?.let(::add)
             book.publishedDate?.let(::add)
             add(book.status.label())
@@ -155,7 +156,7 @@ object NoteExporter {
                 appendLine(
                     listOf(
                         book.title,
-                        book.authors.joinToString("、"),
+                        PersonName.joinForDisplay(book.authors),
                         book.publisher.orEmpty(),
                         book.status.label(),
                         "", "", "", "",
@@ -168,7 +169,7 @@ object NoteExporter {
                 appendLine(
                     listOf(
                         book.title,
-                        book.authors.joinToString("、"),
+                        PersonName.joinForDisplay(book.authors),
                         book.publisher.orEmpty(),
                         book.status.label(),
                         note.type.label(),
